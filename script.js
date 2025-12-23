@@ -485,34 +485,67 @@ const app = {
     getImageUrl(song, size = '500x500') {
         if (!song) return '';
         
-        let imageUrl = '';
+        let imageUrl = null;
+        
+        // Helper function to extract URL string from various formats
+        const extractUrl = (value) => {
+            if (!value) return null;
+            if (typeof value === 'string') return value;
+            if (typeof value === 'object') {
+                return value.link || value.url || value.source || null;
+            }
+            return null;
+        };
         
         // Try different possible image fields
         if (song.image) {
             if (Array.isArray(song.image)) {
                 // Get the highest quality image (last in array usually)
-                imageUrl = song.image[song.image.length - 1]?.link || song.image[0]?.link || song.image[song.image.length - 1] || song.image[0] || '';
-            } else if (typeof song.image === 'string') {
-                imageUrl = song.image;
-            } else if (song.image.link) {
-                imageUrl = song.image.link;
+                const lastImg = song.image[song.image.length - 1];
+                const firstImg = song.image[0];
+                imageUrl = extractUrl(lastImg) || extractUrl(firstImg);
+            } else {
+                imageUrl = extractUrl(song.image);
             }
         } else if (song.thumbnail) {
-            imageUrl = song.thumbnail;
+            imageUrl = extractUrl(song.thumbnail);
         } else if (song.cover) {
-            imageUrl = song.cover;
+            imageUrl = extractUrl(song.cover);
+        } else if (song.poster) {
+            imageUrl = extractUrl(song.poster);
         }
         
-        if (imageUrl) {
+        // Ensure we have a string before processing
+        if (!imageUrl || typeof imageUrl !== 'string') {
+            return '';
+        }
+        
+        // Process the URL string
+        try {
             // Ensure HTTPS
             imageUrl = imageUrl.replace('http://', 'https://');
+            
             // Replace image size in URL to get higher quality
-            imageUrl = imageUrl.replace(/\/(\d+)x(\d+)\//, `/${size.split('x')[0]}x${size.split('x')[1]}/`);
-            // Also try other common size patterns
-            imageUrl = imageUrl.replace(/50x50|150x150|250x250|300x300/g, size.split('x')[0] + 'x' + size.split('x')[1]);
+            const sizeParts = size.split('x');
+            const targetSize = sizeParts[0] + 'x' + sizeParts[1];
+            
+            // Try different size replacement patterns
+            imageUrl = imageUrl.replace(/\/50x50\//g, `/${targetSize}/`);
+            imageUrl = imageUrl.replace(/\/150x150\//g, `/${targetSize}/`);
+            imageUrl = imageUrl.replace(/\/250x250\//g, `/${targetSize}/`);
+            imageUrl = imageUrl.replace(/\/300x300\//g, `/${targetSize}/`);
+            imageUrl = imageUrl.replace(/\/500x500\//g, `/${targetSize}/`);
+            imageUrl = imageUrl.replace(/50x50/g, targetSize);
+            imageUrl = imageUrl.replace(/150x150/g, targetSize);
+            
+            // Handle URL pattern like: .../150x150/... -> .../500x500/...
+            imageUrl = imageUrl.replace(/\/(\d+)x(\d+)\//, `/${targetSize}/`);
+            
+            return imageUrl;
+        } catch (error) {
+            console.error('Error processing image URL:', error);
+            return '';
         }
-        
-        return imageUrl || '';
     },
 
     getArtistName(song) {
@@ -528,12 +561,13 @@ const app = {
         const q = quality || this.data.settings.quality;
         let url = null;
         
-        console.log('Getting audio URL for song:', song.name || song.title, 'Quality:', q);
-        console.log('Song object keys:', Object.keys(song));
+        // Debug logging (only in development)
+        if (window.location.hostname === 'localhost') {
+            console.log('Getting audio URL for song:', song.name || song.title, 'Quality:', q);
+        }
         
         // Try downloadUrl array first
         if (Array.isArray(song.downloadUrl)) {
-            console.log('Found downloadUrl array:', song.downloadUrl);
             const qualityMap = { '96': '96', '128': '128', '160': '160', '320': '320' };
             const qualityValue = qualityMap[q];
             
@@ -555,37 +589,33 @@ const app = {
         } 
         // Try string downloadUrl
         else if (typeof song.downloadUrl === 'string') {
-            console.log('Found downloadUrl string:', song.downloadUrl);
             url = song.downloadUrl;
         } 
         // Try media_url
         else if (song.media_url) {
-            console.log('Found media_url:', song.media_url);
             url = song.media_url;
         }
         // Try media_preview_url
         else if (song.media_preview_url) {
-            console.log('Found media_preview_url:', song.media_preview_url);
             url = song.media_preview_url;
         }
         // Try download_url (with underscore)
         else if (song.download_url) {
-            console.log('Found download_url:', song.download_url);
             url = song.download_url;
         }
         // Try url field directly
         else if (song.url) {
-            console.log('Found url field:', song.url);
             url = song.url;
         }
         // If no URL found and we have an ID, try to fetch song details
         else if (song.id) {
-            console.log('No audio URL found in song object, fetching song details for ID:', song.id);
+            if (window.location.hostname === 'localhost') {
+                console.log('No audio URL found in song object, fetching song details for ID:', song.id);
+            }
             try {
                 const songData = await this.fetchAPI(`songs?id=${song.id}`);
                 if (songData) {
                     const fullSong = songData.data || songData.results?.[0] || songData;
-                    console.log('Fetched song details:', fullSong);
                     
                     // Try the same extraction on the full song data
                     if (Array.isArray(fullSong.downloadUrl)) {
@@ -606,8 +636,7 @@ const app = {
         
         if (url) {
             url = url.replace('http://', 'https://');
-            console.log('Final audio URL:', url);
-        } else {
+        } else if (window.location.hostname === 'localhost') {
             console.warn('No audio URL found for song:', song.name || song.title);
         }
         
@@ -692,40 +721,48 @@ const app = {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         
-        // Log first song to debug
-        if (songs.length > 0) {
+        // Log first song to debug (only in development, first time)
+        if (songs.length > 0 && !this._debugged && window.location.hostname === 'localhost') {
             console.log('Sample song data:', songs[0]);
+            this._debugged = true;
         }
         
+        const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="500"%3E%3Crect fill="%23181818" width="500" height="500"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-family="Arial" font-size="24"%3EMusic%3C/text%3E%3C/svg%3E';
+        
         songs.forEach((song, index) => {
-            const card = document.createElement('div');
-            card.className = 'song-card';
-            const imageUrl = this.getImageUrl(song);
-            const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="500"%3E%3Crect fill="%23181818" width="500" height="500"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-family="Arial" font-size="24"%3EMusic%3C/text%3E%3C/svg%3E';
-            
-            card.innerHTML = `
-                <div class="song-card-image">
-                    <img src="${imageUrl || fallbackImg}" 
-                         alt="${song.name || song.title}" 
-                         loading="lazy"
-                         onerror="this.onerror=null; this.src='${fallbackImg}'">
-                    <div class="play-overlay">
-                        <div class="play-btn-overlay">
-                            <i class="fas fa-play"></i>
+            try {
+                const card = document.createElement('div');
+                card.className = 'song-card';
+                const imageUrl = this.getImageUrl(song) || fallbackImg;
+                const songName = (song.name || song.title || 'Unknown').replace(/"/g, '&quot;');
+                const artistName = this.getArtistName(song).replace(/"/g, '&quot;');
+                
+                card.innerHTML = `
+                    <div class="song-card-image">
+                        <img src="${imageUrl}" 
+                             alt="${songName}" 
+                             loading="lazy"
+                             onerror="this.onerror=null; this.src='${fallbackImg}'">
+                        <div class="play-overlay">
+                            <div class="play-btn-overlay">
+                                <i class="fas fa-play"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="song-card-title">${song.name || song.title || 'Unknown'}</div>
-                <div class="song-card-artist">${this.getArtistName(song)}</div>
-            `;
-            
-            card.addEventListener('click', () => {
-                this.data.queue = songs;
-                this.data.queueIndex = index;
-                this.loadTrack(index);
-            });
-            
-            container.appendChild(card);
+                    <div class="song-card-title">${songName}</div>
+                    <div class="song-card-artist">${artistName}</div>
+                `;
+                
+                card.addEventListener('click', () => {
+                    this.data.queue = songs;
+                    this.data.queueIndex = index;
+                    this.loadTrack(index);
+                });
+                
+                container.appendChild(card);
+            } catch (error) {
+                console.error('Error rendering song card:', error, song);
+            }
         });
     },
 
@@ -740,11 +777,13 @@ const app = {
         // Update UI
         this.els.playerTitle.textContent = song.name || song.title || 'Unknown';
         this.els.playerArtist.textContent = this.getArtistName(song);
+        const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="500"%3E%3Crect fill="%23181818" width="500" height="500"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-family="Arial" font-size="24"%3EMusic%3C/text%3E%3C/svg%3E';
         const playerImgUrl = this.getImageUrl(song);
-        this.els.playerArtwork.src = playerImgUrl || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'500\' height=\'500\'%3E%3Crect fill=\'%23181818\' width=\'500\' height=\'500\'/%3E%3Ctext fill=\'%23fff\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'Arial\' font-size=\'24\'%3EMusic%3C/text%3E%3C/svg%3E';
-        this.els.playerArtwork.alt = song.name || song.title;
+        this.els.playerArtwork.src = playerImgUrl || fallbackImg;
+        this.els.playerArtwork.alt = song.name || song.title || 'Music';
         this.els.playerArtwork.onerror = function() {
-            this.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'500\' height=\'500\'%3E%3Crect fill=\'%23181818\' width=\'500\' height=\'500\'/%3E%3Ctext fill=\'%23fff\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-family=\'Arial\' font-size=\'24\'%3EMusic%3C/text%3E%3C/svg%3E';
+            this.onerror = null; // Prevent infinite loop
+            this.src = fallbackImg;
         };
         
         // Get audio URL (async)
@@ -1250,3 +1289,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Global functions for onclick handlers
 window.app = app;
+
