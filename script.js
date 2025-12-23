@@ -499,6 +499,9 @@ const app = {
         const q = quality || this.data.settings.quality;
         let url = null;
         
+        console.log('getAudioUrl called for:', song.name || song.title);
+        console.log('Song downloadUrl:', song.downloadUrl);
+        
         // Quality mapping: "96" -> "96kbps", "160" -> "160kbps", etc.
         const qualityMap = { 
             '96': '96kbps', 
@@ -510,6 +513,9 @@ const app = {
         
         // Try downloadUrl array (format: [{quality: "96kbps", url: "..."}, ...])
         if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
+            console.log('Found downloadUrl array with', song.downloadUrl.length, 'items');
+            console.log('Looking for quality:', targetQuality);
+            
             // Try to find exact quality match
             const qualityMatch = song.downloadUrl.find(d => {
                 if (!d || typeof d !== 'object') return false;
@@ -519,13 +525,16 @@ const app = {
             
             if (qualityMatch && qualityMatch.url) {
                 url = qualityMatch.url;
+                console.log('Found quality match:', url);
             } else {
+                console.log('No exact quality match, using fallback');
                 // Fallback: try to find closest quality or use last item
                 // Prefer higher quality if available
                 const sortedByQuality = [...song.downloadUrl].reverse(); // Start with highest
                 for (const item of sortedByQuality) {
                     if (item && item.url) {
                         url = item.url;
+                        console.log('Using fallback URL:', url);
                         break;
                     }
                 }
@@ -534,16 +543,24 @@ const app = {
         // Try string downloadUrl (fallback)
         else if (typeof song.downloadUrl === 'string') {
             url = song.downloadUrl;
+            console.log('Found string downloadUrl:', url);
         }
         // Try other URL fields
         else if (song.media_url) {
             url = typeof song.media_url === 'string' ? song.media_url : song.media_url.url;
+            console.log('Found media_url:', url);
         } else if (song.url) {
             url = typeof song.url === 'string' ? song.url : song.url.url;
+            console.log('Found url field:', url);
+        } else {
+            console.warn('No audio URL found in song object. Available keys:', Object.keys(song));
         }
         
         if (url) {
             url = url.replace('http://', 'https://');
+            console.log('Final audio URL:', url);
+        } else {
+            console.error('❌ No audio URL found!');
         }
         
         return url;
@@ -698,7 +715,11 @@ const app = {
         
         // Get audio URL (async)
         const audioUrl = await this.getAudioUrl(song);
+        console.log('Audio URL retrieved:', audioUrl);
+        console.log('Song object:', song);
+        
         if (!audioUrl) {
+            console.error('No audio URL found for song:', song);
             this.showToast('Audio not available');
             return;
         }
@@ -712,14 +733,28 @@ const app = {
         this.els.audio.src = audioUrl;
         this.els.audio.load();
         
-        // Play
+        // Wait for audio to be ready, then play
+        this.els.audio.addEventListener('loadeddata', () => {
+            console.log('Audio loaded, attempting to play...');
+            this.els.audio.play().then(() => {
+                this.data.isPlaying = true;
+                this.els.playIcon.className = 'fas fa-pause';
+                console.log('Audio playing successfully');
+            }).catch(e => {
+                console.error('Play error:', e);
+                this.showToast('Click play to start');
+            });
+        }, { once: true });
+        
+        // Also try immediate play (for cached audio)
         try {
             await this.els.audio.play();
             this.data.isPlaying = true;
             this.els.playIcon.className = 'fas fa-pause';
+            console.log('Audio playing immediately');
         } catch (e) {
-            console.error('Play error:', e);
-            this.showToast('Click play to start');
+            // Expected if audio needs to load first - loadeddata handler will catch it
+            console.log('Audio not ready yet, waiting for loadeddata event');
         }
         
         // Update queue display
