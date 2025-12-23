@@ -1,12 +1,9 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://saavn.sumit.co/api',
-    // CORS Proxy options (will try in order)
-    CORS_PROXIES: [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://api.codetabs.com/v1/proxy?quest='
-    ],
+    // Use local proxy API (Vercel serverless function)
+    USE_PROXY: true,
+    PROXY_API: '/api/proxy',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
         USERS: 'nexus_users',
@@ -407,12 +404,21 @@ const app = {
 
     // ===== API INTEGRATION =====
     async fetchAPI(endpoint) {
-        const url = `${CONFIG.API_BASE}/${endpoint}`;
-        console.log('Fetching:', url);
-        
-        // Try direct fetch first (some APIs support CORS)
         try {
-            const directResponse = await fetch(url, {
+            let url;
+            
+            // Use Vercel serverless function proxy if available, otherwise try direct
+            if (CONFIG.USE_PROXY) {
+                // Use local proxy API endpoint
+                url = `${CONFIG.PROXY_API}?endpoint=${encodeURIComponent(endpoint)}`;
+            } else {
+                // Direct API call
+                url = `${CONFIG.API_BASE}/${endpoint}`;
+            }
+            
+            console.log('Fetching:', url);
+            
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -420,71 +426,60 @@ const app = {
                 mode: 'cors'
             });
             
-            if (directResponse.ok) {
-                const data = await directResponse.json();
-                console.log('Direct fetch success');
-                return data.data || data.results || data;
-            }
-        } catch (directError) {
-            console.warn('Direct fetch failed (CORS?), trying proxies...', directError.message);
-        }
-        
-        // Try CORS proxies in order
-        const proxies = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest='
-        ];
-        
-        for (const proxy of proxies) {
-            try {
-                const proxyUrl = proxy === 'https://corsproxy.io/?' 
-                    ? `${proxy}${url}` 
-                    : `${proxy}${encodeURIComponent(url)}`;
-                
-                console.log('Trying proxy:', proxy);
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                    mode: 'cors'
-                });
-                
-                if (response.ok) {
-                    let text = await response.text();
-                    
-                    // Handle allorigins response format
-                    if (proxy.includes('allorigins')) {
-                        try {
-                            const parsed = JSON.parse(text);
-                            if (parsed.contents) {
-                                text = parsed.contents;
-                            }
-                        } catch (e) {
-                            // Already plain text/JSON
-                        }
-                    }
-                    
-                    try {
-                        const data = JSON.parse(text);
-                        console.log('Proxy fetch success');
-                        return data.data || data.results || data;
-                    } catch (parseError) {
-                        console.warn('Failed to parse JSON, trying next proxy');
-                        continue;
-                    }
+            if (!response.ok) {
+                // If proxy fails, try direct as fallback (only in development)
+                if (CONFIG.USE_PROXY && response.status >= 500) {
+                    console.warn('Proxy failed, trying direct API...');
+                    return this.fetchAPIDirect(endpoint);
                 }
-            } catch (proxyError) {
-                console.warn(`Proxy ${proxy} failed:`, proxyError.message);
-                continue;
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
             }
+            
+            const data = await response.json();
+            console.log('Fetch success');
+            return data.data || data.results || data;
+            
+        } catch (error) {
+            console.error('API Error:', error);
+            console.error('Endpoint:', endpoint);
+            
+            // Fallback to direct API if proxy fails
+            if (CONFIG.USE_PROXY) {
+                console.warn('Trying direct API as fallback...');
+                return this.fetchAPIDirect(endpoint);
+            }
+            
+            this.showToast('Failed to load content. Please check your connection.');
+            return null;
         }
-        
-        // All methods failed
-        console.error('All fetch methods failed for:', url);
-        this.showToast('Failed to load content. Please check your connection.');
-        return null;
+    },
+
+    // Direct API fetch (fallback method)
+    async fetchAPIDirect(endpoint) {
+        try {
+            const url = `${CONFIG.API_BASE}/${endpoint}`;
+            console.log('Direct fetch:', url);
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                },
+                mode: 'cors'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Direct API returned ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data.data || data.results || data;
+            
+        } catch (error) {
+            console.error('Direct API also failed:', error);
+            this.showToast('Failed to load content. Please check your connection.');
+            return null;
+        }
     },
 
     getImageUrl(song, size = '500x500') {
@@ -1156,4 +1151,3 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Global functions for onclick handlers
 window.app = app;
-
