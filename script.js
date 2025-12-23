@@ -139,9 +139,28 @@ const app = {
         this.els.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.els.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.els.audio.addEventListener('ended', () => this.handleTrackEnd());
-        this.els.audio.addEventListener('error', (e) => this.handleAudioError(e));
-        this.els.audio.addEventListener('play', () => this.updatePlayState(true));
-        this.els.audio.addEventListener('pause', () => this.updatePlayState(false));
+        this.els.audio.addEventListener('error', (e) => {
+            console.error('Audio element error:', e, this.els.audio.error);
+            this.handleAudioError(e);
+        });
+        this.els.audio.addEventListener('play', () => {
+            console.log('Audio play event fired');
+            this.updatePlayState(true);
+        });
+        this.els.audio.addEventListener('pause', () => {
+            console.log('Audio pause event fired');
+            this.updatePlayState(false);
+        });
+        this.els.audio.addEventListener('stalled', () => {
+            console.warn('Audio stalled');
+            this.showToast('Audio loading...');
+        });
+        this.els.audio.addEventListener('waiting', () => {
+            console.log('Audio waiting for data');
+        });
+        this.els.audio.addEventListener('canplay', () => {
+            console.log('Audio can play');
+        });
 
         // Progress bar
         this.els.progressBar.addEventListener('click', (e) => this.seek(e));
@@ -680,10 +699,14 @@ const app = {
                     <div class="song-card-artist">${artistName}</div>
                 `;
                 
-                card.addEventListener('click', () => {
+                card.addEventListener('click', async () => {
                     this.data.queue = songs;
                     this.data.queueIndex = index;
-                    this.loadTrack(index);
+                    // Store user interaction context for autoplay
+                    this.userInteractionActive = true;
+                    await this.loadTrack(index);
+                    // Reset after a short delay
+                    setTimeout(() => { this.userInteractionActive = false; }, 1000);
                 });
                 
                 container.appendChild(card);
@@ -729,32 +752,45 @@ const app = {
         this.els.qualityBadge.textContent = `${quality}k`;
         this.els.qualityBadge.classList.toggle('premium', quality === '320' || quality === '160');
         
+        // Stop any currently playing audio
+        this.els.audio.pause();
+        this.els.audio.currentTime = 0;
+        this.data.isPlaying = false;
+        this.els.playIcon.className = 'fas fa-play';
+        
+        // Set up audio element
+        this.els.audio.crossOrigin = 'anonymous';
+        this.els.audio.preload = 'auto';
+        
         // Load audio
         this.els.audio.src = audioUrl;
         this.els.audio.load();
         
-        // Wait for audio to be ready, then play
-        this.els.audio.addEventListener('loadeddata', () => {
-            console.log('Audio loaded, attempting to play...');
-            this.els.audio.play().then(() => {
-                this.data.isPlaying = true;
-                this.els.playIcon.className = 'fas fa-pause';
-                console.log('Audio playing successfully');
-            }).catch(e => {
-                console.error('Play error:', e);
-                this.showToast('Click play to start');
-            });
-        }, { once: true });
+        console.log('Audio source set, ready to play. User can click play button.');
         
-        // Also try immediate play (for cached audio)
-        try {
-            await this.els.audio.play();
-            this.data.isPlaying = true;
-            this.els.playIcon.className = 'fas fa-pause';
-            console.log('Audio playing immediately');
-        } catch (e) {
-            // Expected if audio needs to load first - loadeddata handler will catch it
-            console.log('Audio not ready yet, waiting for loadeddata event');
+        // Try to auto-play only if we have active user interaction
+        // This preserves the user gesture context for autoplay policies
+        if (this.userInteractionActive) {
+            // Try immediate play while user interaction is still valid
+            const tryPlay = async () => {
+                try {
+                    await this.els.audio.play();
+                    this.data.isPlaying = true;
+                    this.els.playIcon.className = 'fas fa-pause';
+                    console.log('✅ Auto-playing audio');
+                } catch (e) {
+                    console.log('Autoplay blocked or not ready, user can click play:', e.name);
+                    this.data.isPlaying = false;
+                    this.els.playIcon.className = 'fas fa-play';
+                }
+            };
+            
+            // Try immediately
+            tryPlay();
+        } else {
+            // No user interaction, just prepare for manual play
+            this.data.isPlaying = false;
+            this.els.playIcon.className = 'fas fa-play';
         }
         
         // Update queue display
@@ -765,12 +801,29 @@ const app = {
     },
 
     togglePlay() {
-        if (!this.data.currentTrack) return;
+        if (!this.data.currentTrack || !this.els.audio.src) {
+            this.showToast('No song selected');
+            return;
+        }
         
         if (this.data.isPlaying) {
             this.els.audio.pause();
+            this.data.isPlaying = false;
+            this.els.playIcon.className = 'fas fa-play';
         } else {
-            this.els.audio.play();
+            this.els.audio.play().then(() => {
+                this.data.isPlaying = true;
+                this.els.playIcon.className = 'fas fa-pause';
+            }).catch(e => {
+                console.error('Play failed:', e);
+                this.data.isPlaying = false;
+                this.els.playIcon.className = 'fas fa-play';
+                if (e.name === 'NotAllowedError') {
+                    this.showToast('Browser blocked autoplay. Click play again.');
+                } else {
+                    this.showToast('Unable to play audio');
+                }
+            });
         }
     },
 
