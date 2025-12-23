@@ -1,6 +1,12 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://saavn.sumit.co/api',
+    // CORS Proxy options (will try in order)
+    CORS_PROXIES: [
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://api.codetabs.com/v1/proxy?quest='
+    ],
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
         USERS: 'nexus_users',
@@ -401,17 +407,84 @@ const app = {
 
     // ===== API INTEGRATION =====
     async fetchAPI(endpoint) {
+        const url = `${CONFIG.API_BASE}/${endpoint}`;
+        console.log('Fetching:', url);
+        
+        // Try direct fetch first (some APIs support CORS)
         try {
-            const url = `${CONFIG.API_BASE}/${endpoint}`;
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('API Error');
-            const data = await response.json();
-            return data.data || data;
-        } catch (error) {
-            console.error('API Error:', error);
-            this.showToast('Failed to load content');
-            return null;
+            const directResponse = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                },
+                mode: 'cors'
+            });
+            
+            if (directResponse.ok) {
+                const data = await directResponse.json();
+                console.log('Direct fetch success');
+                return data.data || data.results || data;
+            }
+        } catch (directError) {
+            console.warn('Direct fetch failed (CORS?), trying proxies...', directError.message);
         }
+        
+        // Try CORS proxies in order
+        const proxies = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+        
+        for (const proxy of proxies) {
+            try {
+                const proxyUrl = proxy === 'https://corsproxy.io/?' 
+                    ? `${proxy}${url}` 
+                    : `${proxy}${encodeURIComponent(url)}`;
+                
+                console.log('Trying proxy:', proxy);
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    let text = await response.text();
+                    
+                    // Handle allorigins response format
+                    if (proxy.includes('allorigins')) {
+                        try {
+                            const parsed = JSON.parse(text);
+                            if (parsed.contents) {
+                                text = parsed.contents;
+                            }
+                        } catch (e) {
+                            // Already plain text/JSON
+                        }
+                    }
+                    
+                    try {
+                        const data = JSON.parse(text);
+                        console.log('Proxy fetch success');
+                        return data.data || data.results || data;
+                    } catch (parseError) {
+                        console.warn('Failed to parse JSON, trying next proxy');
+                        continue;
+                    }
+                }
+            } catch (proxyError) {
+                console.warn(`Proxy ${proxy} failed:`, proxyError.message);
+                continue;
+            }
+        }
+        
+        // All methods failed
+        console.error('All fetch methods failed for:', url);
+        this.showToast('Failed to load content. Please check your connection.');
+        return null;
     },
 
     getImageUrl(song, size = '500x500') {
@@ -478,12 +551,29 @@ const app = {
         grid.innerHTML = '<div class="skeleton-card"></div>'.repeat(4);
         
         const data = await this.fetchAPI(endpoint);
-        if (!data || !data.results) {
+        if (!data) {
             grid.innerHTML = '<p class="empty-state">Failed to load</p>';
             return;
         }
         
-        this.renderSongs(data.results, gridId);
+        // Handle different response structures
+        let songs = [];
+        if (Array.isArray(data)) {
+            songs = data;
+        } else if (data.results && Array.isArray(data.results)) {
+            songs = data.results;
+        } else if (data.data && Array.isArray(data.data)) {
+            songs = data.data;
+        } else if (data.songs && Array.isArray(data.songs)) {
+            songs = data.songs;
+        }
+        
+        if (songs.length === 0) {
+            grid.innerHTML = '<p class="empty-state">No content found</p>';
+            return;
+        }
+        
+        this.renderSongs(songs, gridId);
     },
 
     async search(query) {
@@ -494,12 +584,29 @@ const app = {
         grid.innerHTML = '<div class="skeleton-card"></div>'.repeat(8);
         
         const data = await this.fetchAPI(`search/songs?query=${encodeURIComponent(query)}&limit=20`);
-        if (!data || !data.results) {
+        if (!data) {
             grid.innerHTML = '<p class="empty-state">No results found</p>';
             return;
         }
         
-        this.renderSongs(data.results, 'search-grid');
+        // Handle different response structures
+        let songs = [];
+        if (Array.isArray(data)) {
+            songs = data;
+        } else if (data.results && Array.isArray(data.results)) {
+            songs = data.results;
+        } else if (data.data && Array.isArray(data.data)) {
+            songs = data.data;
+        } else if (data.songs && Array.isArray(data.songs)) {
+            songs = data.songs;
+        }
+        
+        if (songs.length === 0) {
+            grid.innerHTML = '<p class="empty-state">No results found</p>';
+            return;
+        }
+        
+        this.renderSongs(songs, 'search-grid');
     },
 
     renderSongs(songs, containerId) {
