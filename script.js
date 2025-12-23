@@ -437,7 +437,8 @@ const app = {
             
             const data = await response.json();
             console.log('Fetch success');
-            return data.data || data.results || data;
+            // Return full response object - let calling function handle nested structure
+            return data;
             
         } catch (error) {
             console.error('API Error:', error);
@@ -487,32 +488,32 @@ const app = {
         
         let imageUrl = null;
         
-        // Helper function to extract URL string from various formats
-        const extractUrl = (value) => {
-            if (!value) return null;
-            if (typeof value === 'string') return value;
-            if (typeof value === 'object') {
-                return value.link || value.url || value.source || null;
-            }
-            return null;
-        };
-        
-        // Try different possible image fields
-        if (song.image) {
-            if (Array.isArray(song.image)) {
-                // Get the highest quality image (last in array usually)
-                const lastImg = song.image[song.image.length - 1];
-                const firstImg = song.image[0];
-                imageUrl = extractUrl(lastImg) || extractUrl(firstImg);
+        // API format: image array with [{quality: "500x500", url: "..."}, ...]
+        if (song.image && Array.isArray(song.image) && song.image.length > 0) {
+            // Try to find exact size match first
+            const sizeMatch = song.image.find(img => img && img.quality === size);
+            if (sizeMatch && sizeMatch.url) {
+                imageUrl = sizeMatch.url;
             } else {
-                imageUrl = extractUrl(song.image);
+                // Fallback: get highest quality (usually last item or largest size)
+                const sorted = [...song.image].reverse(); // Start with last (usually highest quality)
+                for (const img of sorted) {
+                    if (img && img.url) {
+                        imageUrl = img.url;
+                        break;
+                    }
+                }
             }
+        } 
+        // Fallback formats
+        else if (song.image && typeof song.image === 'string') {
+            imageUrl = song.image;
+        } else if (song.image && typeof song.image === 'object' && song.image.url) {
+            imageUrl = song.image.url;
         } else if (song.thumbnail) {
-            imageUrl = extractUrl(song.thumbnail);
+            imageUrl = typeof song.thumbnail === 'string' ? song.thumbnail : song.thumbnail.url;
         } else if (song.cover) {
-            imageUrl = extractUrl(song.cover);
-        } else if (song.poster) {
-            imageUrl = extractUrl(song.poster);
+            imageUrl = typeof song.cover === 'string' ? song.cover : song.cover.url;
         }
         
         // Ensure we have a string before processing
@@ -524,23 +525,6 @@ const app = {
         try {
             // Ensure HTTPS
             imageUrl = imageUrl.replace('http://', 'https://');
-            
-            // Replace image size in URL to get higher quality
-            const sizeParts = size.split('x');
-            const targetSize = sizeParts[0] + 'x' + sizeParts[1];
-            
-            // Try different size replacement patterns
-            imageUrl = imageUrl.replace(/\/50x50\//g, `/${targetSize}/`);
-            imageUrl = imageUrl.replace(/\/150x150\//g, `/${targetSize}/`);
-            imageUrl = imageUrl.replace(/\/250x250\//g, `/${targetSize}/`);
-            imageUrl = imageUrl.replace(/\/300x300\//g, `/${targetSize}/`);
-            imageUrl = imageUrl.replace(/\/500x500\//g, `/${targetSize}/`);
-            imageUrl = imageUrl.replace(/50x50/g, targetSize);
-            imageUrl = imageUrl.replace(/150x150/g, targetSize);
-            
-            // Handle URL pattern like: .../150x150/... -> .../500x500/...
-            imageUrl = imageUrl.replace(/\/(\d+)x(\d+)\//, `/${targetSize}/`);
-            
             return imageUrl;
         } catch (error) {
             console.error('Error processing image URL:', error);
@@ -549,10 +533,19 @@ const app = {
     },
 
     getArtistName(song) {
-        if (song.primaryArtists) return song.primaryArtists;
-        if (song.singers) return song.singers;
+        // API format: artists.primary array with [{name: "...", ...}, ...]
+        if (song.artists && song.artists.primary && Array.isArray(song.artists.primary)) {
+            return song.artists.primary.map(a => a.name || '').filter(Boolean).join(', ') || 'Unknown Artist';
+        }
+        // Fallback formats
+        if (song.primaryArtists) {
+            return typeof song.primaryArtists === 'string' ? song.primaryArtists : song.primaryArtists.join(', ');
+        }
+        if (song.singers) {
+            return typeof song.singers === 'string' ? song.singers : song.singers.join(', ');
+        }
         if (Array.isArray(song.artists)) {
-            return song.artists.map(a => a.name || a).join(', ');
+            return song.artists.map(a => (typeof a === 'string' ? a : (a.name || ''))).filter(Boolean).join(', ') || 'Unknown Artist';
         }
         return 'Unknown Artist';
     },
@@ -561,115 +554,51 @@ const app = {
         const q = quality || this.data.settings.quality;
         let url = null;
         
-        console.log('Getting audio URL for:', song.name || song.title);
-        console.log('Song object keys:', Object.keys(song));
-        console.log('Song object:', song);
-        
-        // Helper to extract URL from various formats
-        const extractUrlFromItem = (item) => {
-            if (!item) return null;
-            if (typeof item === 'string') return item;
-            if (typeof item === 'object') {
-                return item.link || item.url || item.source || item.media_url || item.downloadUrl || null;
-            }
-            return null;
+        // Quality mapping: "96" -> "96kbps", "160" -> "160kbps", etc.
+        const qualityMap = { 
+            '96': '96kbps', 
+            '128': '128kbps', 
+            '160': '160kbps', 
+            '320': '320kbps' 
         };
+        const targetQuality = qualityMap[q] || `${q}kbps`;
         
-        // Try downloadUrl array first (most common in JioSaavn API)
+        // Try downloadUrl array (format: [{quality: "96kbps", url: "..."}, ...])
         if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
-            console.log('Found downloadUrl array:', song.downloadUrl);
-            const qualityMap = { '96': '96', '128': '128', '160': '160', '320': '320' };
-            const qualityValue = qualityMap[q];
-            
-            // Try to find matching quality
-            let qualityMatch = song.downloadUrl.find(d => {
-                if (typeof d === 'string') return false;
-                const dQuality = d.quality || d.quality_ || d.q || null;
-                return dQuality === qualityValue || dQuality === q;
+            // Try to find exact quality match
+            const qualityMatch = song.downloadUrl.find(d => {
+                if (!d || typeof d !== 'object') return false;
+                const dQuality = d.quality || '';
+                return dQuality === targetQuality || dQuality === q || dQuality === `${q}kbps`;
             });
             
-            if (qualityMatch) {
-                url = extractUrlFromItem(qualityMatch);
-                console.log('Found quality match:', url);
-            }
-            
-            // Fallback to any item in array
-            if (!url) {
-                for (const item of song.downloadUrl) {
-                    url = extractUrlFromItem(item);
-                    if (url) {
-                        console.log('Using fallback URL from array:', url);
+            if (qualityMatch && qualityMatch.url) {
+                url = qualityMatch.url;
+            } else {
+                // Fallback: try to find closest quality or use last item
+                // Prefer higher quality if available
+                const sortedByQuality = [...song.downloadUrl].reverse(); // Start with highest
+                for (const item of sortedByQuality) {
+                    if (item && item.url) {
+                        url = item.url;
                         break;
                     }
                 }
             }
         } 
-        // Try string downloadUrl
+        // Try string downloadUrl (fallback)
         else if (typeof song.downloadUrl === 'string') {
-            console.log('Found downloadUrl string:', song.downloadUrl);
             url = song.downloadUrl;
         }
-        // Try media_url
+        // Try other URL fields
         else if (song.media_url) {
-            console.log('Found media_url:', song.media_url);
-            url = typeof song.media_url === 'string' ? song.media_url : extractUrlFromItem(song.media_url);
-        }
-        // Try media_preview_url
-        else if (song.media_preview_url) {
-            console.log('Found media_preview_url:', song.media_preview_url);
-            url = typeof song.media_preview_url === 'string' ? song.media_preview_url : extractUrlFromItem(song.media_preview_url);
-        }
-        // Try download_url (with underscore)
-        else if (song.download_url) {
-            console.log('Found download_url:', song.download_url);
-            url = typeof song.download_url === 'string' ? song.download_url : extractUrlFromItem(song.download_url);
-        }
-        // Try url field directly
-        else if (song.url) {
-            console.log('Found url field:', song.url);
-            url = typeof song.url === 'string' ? song.url : extractUrlFromItem(song.url);
-        }
-        // Try downloadUrl object (not array)
-        else if (song.downloadUrl && typeof song.downloadUrl === 'object' && !Array.isArray(song.downloadUrl)) {
-            console.log('Found downloadUrl object:', song.downloadUrl);
-            url = extractUrlFromItem(song.downloadUrl);
-        }
-        // If no URL found and we have an ID, try to fetch song details
-        else if (song.id) {
-            console.log('No audio URL found in song object, fetching song details for ID:', song.id);
-            try {
-                // Try different endpoint formats
-                let songData = await this.fetchAPI(`songs?id=${song.id}`);
-                if (!songData || (!songData.data && !songData.results && !songData.downloadUrl)) {
-                    // Try alternative endpoint
-                    songData = await this.fetchAPI(`song?id=${song.id}`);
-                }
-                
-                if (songData) {
-                    const fullSong = songData.data || songData.results?.[0] || songData[0] || songData;
-                    console.log('Fetched song details:', fullSong);
-                    
-                    // Try the same extraction on the full song data
-                    if (Array.isArray(fullSong.downloadUrl) && fullSong.downloadUrl.length > 0) {
-                        url = extractUrlFromItem(fullSong.downloadUrl[fullSong.downloadUrl.length - 1]);
-                    } else if (fullSong.downloadUrl) {
-                        url = extractUrlFromItem(fullSong.downloadUrl);
-                    } else if (fullSong.media_url) {
-                        url = extractUrlFromItem(fullSong.media_url);
-                    } else if (fullSong.url) {
-                        url = extractUrlFromItem(fullSong.url);
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to fetch song details:', e);
-            }
+            url = typeof song.media_url === 'string' ? song.media_url : song.media_url.url;
+        } else if (song.url) {
+            url = typeof song.url === 'string' ? song.url : song.url.url;
         }
         
         if (url) {
             url = url.replace('http://', 'https://');
-            console.log('Final audio URL:', url);
-        } else {
-            console.warn('❌ No audio URL found for song:', song.name || song.title);
         }
         
         return url;
@@ -696,9 +625,11 @@ const app = {
             return;
         }
         
-        // Handle different response structures
+        // Handle API response structure: {success: true, data: {results: [...]}}
         let songs = [];
-        if (Array.isArray(data)) {
+        if (data.data && data.data.results && Array.isArray(data.data.results)) {
+            songs = data.data.results;
+        } else if (Array.isArray(data)) {
             songs = data;
         } else if (data.results && Array.isArray(data.results)) {
             songs = data.results;
@@ -729,9 +660,11 @@ const app = {
             return;
         }
         
-        // Handle different response structures
+        // Handle API response structure: {success: true, data: {results: [...]}}
         let songs = [];
-        if (Array.isArray(data)) {
+        if (data.data && data.data.results && Array.isArray(data.data.results)) {
+            songs = data.data.results;
+        } else if (Array.isArray(data)) {
             songs = data;
         } else if (data.results && Array.isArray(data.results)) {
             songs = data.results;
