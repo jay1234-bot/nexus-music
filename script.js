@@ -1,6 +1,6 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
-    API_BASE: 'https://saavn.sumit.co/api',
+    API_BASE: 'https://krishan7979.vercel.app/api',
     // Use working proxy API
     USE_PROXY: true,
     PROXY_API: 'https://krishan7979.vercel.app/api',
@@ -1254,4 +1254,5 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Global functions for onclick handlers
 window.app = app;
+
 
