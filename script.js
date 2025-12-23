@@ -1,9 +1,9 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://saavn.sumit.co/api',
-    // Use local proxy API (Vercel serverless function)
+    // Use working proxy API
     USE_PROXY: true,
-    PROXY_API: '/api/proxy',
+    PROXY_API: 'https://krishan7979.vercel.app/api',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
         USERS: 'nexus_users',
@@ -407,10 +407,10 @@ const app = {
         try {
             let url;
             
-            // Use Vercel serverless function proxy if available, otherwise try direct
+            // Use working proxy API
             if (CONFIG.USE_PROXY) {
-                // Use local proxy API endpoint
-                url = `${CONFIG.PROXY_API}?endpoint=${encodeURIComponent(endpoint)}`;
+                // Append endpoint to proxy API (works with krishan7979.vercel.app/api)
+                url = `${CONFIG.PROXY_API}/${endpoint}`;
             } else {
                 // Direct API call
                 url = `${CONFIG.API_BASE}/${endpoint}`;
