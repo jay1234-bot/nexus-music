@@ -1,9 +1,6 @@
 // ===== CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://krishan7979.vercel.app/api',
-    // Use working proxy API
-    USE_PROXY: true,
-    PROXY_API: 'https://krishan7979.vercel.app/api',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
         USERS: 'nexus_users',
@@ -405,18 +402,7 @@ const app = {
     // ===== API INTEGRATION =====
     async fetchAPI(endpoint) {
         try {
-            let url;
-            
-            // Use working proxy API
-            if (CONFIG.USE_PROXY) {
-                // Append endpoint to proxy API (works with krishan7979.vercel.app/api)
-                url = `${CONFIG.PROXY_API}/${endpoint}`;
-            } else {
-                // Direct API call
-                url = `${CONFIG.API_BASE}/${endpoint}`;
-            }
-            
-            console.log('Fetching:', url);
+            const url = `${CONFIG.API_BASE}/${endpoint}`;
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -427,61 +413,20 @@ const app = {
             });
             
             if (!response.ok) {
-                // If proxy fails, try direct as fallback (only in development)
-                if (CONFIG.USE_PROXY && response.status >= 500) {
-                    console.warn('Proxy failed, trying direct API...');
-                    return this.fetchAPIDirect(endpoint);
-                }
                 throw new Error(`API returned ${response.status}: ${response.statusText}`);
             }
             
             const data = await response.json();
-            console.log('Fetch success');
             // Return full response object - let calling function handle nested structure
             return data;
             
         } catch (error) {
-            console.error('API Error:', error);
-            console.error('Endpoint:', endpoint);
-            
-            // Fallback to direct API if proxy fails
-            if (CONFIG.USE_PROXY) {
-                console.warn('Trying direct API as fallback...');
-                return this.fetchAPIDirect(endpoint);
-            }
-            
+            console.error('API Error:', error.message);
             this.showToast('Failed to load content. Please check your connection.');
             return null;
         }
     },
 
-    // Direct API fetch (fallback method)
-    async fetchAPIDirect(endpoint) {
-        try {
-            const url = `${CONFIG.API_BASE}/${endpoint}`;
-            console.log('Direct fetch:', url);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                mode: 'cors'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Direct API returned ${response.status}`);
-            }
-            
-            const data = await response.json();
-            return data.data || data.results || data;
-            
-        } catch (error) {
-            console.error('Direct API also failed:', error);
-            this.showToast('Failed to load content. Please check your connection.');
-            return null;
-        }
-    },
 
     getImageUrl(song, size = '500x500') {
         if (!song) return '';
@@ -1066,19 +1011,8 @@ const app = {
     async loadLyrics(song) {
         this.els.lyricsContent.innerHTML = '<p class="empty-state">Loading lyrics...</p>';
         
-        try {
-            // Try to fetch lyrics from API
-            if (song.id) {
-                const data = await this.fetchAPI(`songs?id=${song.id}`);
-                if (data && data.lyrics) {
-                    this.els.lyricsContent.textContent = data.lyrics;
-                    return;
-                }
-            }
-        } catch (e) {
-            console.error('Lyrics error:', e);
-        }
-        
+        // Skip lyrics fetching for now to avoid API errors
+        // Lyrics can be added later when API endpoint is available
         this.els.lyricsContent.innerHTML = '<p class="empty-state">No lyrics available</p>';
     },
 
@@ -1254,5 +1188,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Global functions for onclick handlers
 window.app = app;
-
 
