@@ -561,72 +561,103 @@ const app = {
         const q = quality || this.data.settings.quality;
         let url = null;
         
-        // Debug logging (only in development)
-        if (window.location.hostname === 'localhost') {
-            console.log('Getting audio URL for song:', song.name || song.title, 'Quality:', q);
-        }
+        console.log('Getting audio URL for:', song.name || song.title);
+        console.log('Song object keys:', Object.keys(song));
+        console.log('Song object:', song);
         
-        // Try downloadUrl array first
-        if (Array.isArray(song.downloadUrl)) {
+        // Helper to extract URL from various formats
+        const extractUrlFromItem = (item) => {
+            if (!item) return null;
+            if (typeof item === 'string') return item;
+            if (typeof item === 'object') {
+                return item.link || item.url || item.source || item.media_url || item.downloadUrl || null;
+            }
+            return null;
+        };
+        
+        // Try downloadUrl array first (most common in JioSaavn API)
+        if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
+            console.log('Found downloadUrl array:', song.downloadUrl);
             const qualityMap = { '96': '96', '128': '128', '160': '160', '320': '320' };
             const qualityValue = qualityMap[q];
             
             // Try to find matching quality
-            const qualityMatch = song.downloadUrl.find(d => {
-                const dQuality = d.quality || d.quality_ || (typeof d === 'object' ? Object.keys(d)[0] : null);
+            let qualityMatch = song.downloadUrl.find(d => {
+                if (typeof d === 'string') return false;
+                const dQuality = d.quality || d.quality_ || d.q || null;
                 return dQuality === qualityValue || dQuality === q;
             });
             
             if (qualityMatch) {
-                url = qualityMatch.link || qualityMatch.url || (typeof qualityMatch === 'string' ? qualityMatch : null);
+                url = extractUrlFromItem(qualityMatch);
+                console.log('Found quality match:', url);
             }
             
-            // Fallback to last item
-            if (!url && song.downloadUrl.length > 0) {
-                const lastItem = song.downloadUrl[song.downloadUrl.length - 1];
-                url = lastItem?.link || lastItem?.url || (typeof lastItem === 'string' ? lastItem : null);
+            // Fallback to any item in array
+            if (!url) {
+                for (const item of song.downloadUrl) {
+                    url = extractUrlFromItem(item);
+                    if (url) {
+                        console.log('Using fallback URL from array:', url);
+                        break;
+                    }
+                }
             }
         } 
         // Try string downloadUrl
         else if (typeof song.downloadUrl === 'string') {
+            console.log('Found downloadUrl string:', song.downloadUrl);
             url = song.downloadUrl;
-        } 
+        }
         // Try media_url
         else if (song.media_url) {
-            url = song.media_url;
+            console.log('Found media_url:', song.media_url);
+            url = typeof song.media_url === 'string' ? song.media_url : extractUrlFromItem(song.media_url);
         }
         // Try media_preview_url
         else if (song.media_preview_url) {
-            url = song.media_preview_url;
+            console.log('Found media_preview_url:', song.media_preview_url);
+            url = typeof song.media_preview_url === 'string' ? song.media_preview_url : extractUrlFromItem(song.media_preview_url);
         }
         // Try download_url (with underscore)
         else if (song.download_url) {
-            url = song.download_url;
+            console.log('Found download_url:', song.download_url);
+            url = typeof song.download_url === 'string' ? song.download_url : extractUrlFromItem(song.download_url);
         }
         // Try url field directly
         else if (song.url) {
-            url = song.url;
+            console.log('Found url field:', song.url);
+            url = typeof song.url === 'string' ? song.url : extractUrlFromItem(song.url);
+        }
+        // Try downloadUrl object (not array)
+        else if (song.downloadUrl && typeof song.downloadUrl === 'object' && !Array.isArray(song.downloadUrl)) {
+            console.log('Found downloadUrl object:', song.downloadUrl);
+            url = extractUrlFromItem(song.downloadUrl);
         }
         // If no URL found and we have an ID, try to fetch song details
         else if (song.id) {
-            if (window.location.hostname === 'localhost') {
-                console.log('No audio URL found in song object, fetching song details for ID:', song.id);
-            }
+            console.log('No audio URL found in song object, fetching song details for ID:', song.id);
             try {
-                const songData = await this.fetchAPI(`songs?id=${song.id}`);
+                // Try different endpoint formats
+                let songData = await this.fetchAPI(`songs?id=${song.id}`);
+                if (!songData || (!songData.data && !songData.results && !songData.downloadUrl)) {
+                    // Try alternative endpoint
+                    songData = await this.fetchAPI(`song?id=${song.id}`);
+                }
+                
                 if (songData) {
-                    const fullSong = songData.data || songData.results?.[0] || songData;
+                    const fullSong = songData.data || songData.results?.[0] || songData[0] || songData;
+                    console.log('Fetched song details:', fullSong);
                     
                     // Try the same extraction on the full song data
-                    if (Array.isArray(fullSong.downloadUrl)) {
-                        const lastItem = fullSong.downloadUrl[fullSong.downloadUrl.length - 1];
-                        url = lastItem?.link || lastItem?.url || (typeof lastItem === 'string' ? lastItem : null);
+                    if (Array.isArray(fullSong.downloadUrl) && fullSong.downloadUrl.length > 0) {
+                        url = extractUrlFromItem(fullSong.downloadUrl[fullSong.downloadUrl.length - 1]);
                     } else if (fullSong.downloadUrl) {
-                        url = fullSong.downloadUrl;
+                        url = extractUrlFromItem(fullSong.downloadUrl);
                     } else if (fullSong.media_url) {
-                        url = fullSong.media_url;
+                        url = extractUrlFromItem(fullSong.media_url);
                     } else if (fullSong.url) {
-                        url = fullSong.url;
+                        url = extractUrlFromItem(fullSong.url);
                     }
                 }
             } catch (e) {
@@ -636,8 +667,9 @@ const app = {
         
         if (url) {
             url = url.replace('http://', 'https://');
-        } else if (window.location.hostname === 'localhost') {
-            console.warn('No audio URL found for song:', song.name || song.title);
+            console.log('Final audio URL:', url);
+        } else {
+            console.warn('❌ No audio URL found for song:', song.name || song.title);
         }
         
         return url;
