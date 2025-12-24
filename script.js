@@ -958,30 +958,23 @@ const app = {
 
         console.log('Audio source set, ready to play. User can click play button.');
 
-        // Try to auto-play only if we have active user interaction
-        // This preserves the user gesture context for autoplay policies
-        if (this.userInteractionActive) {
-            // Try immediate play while user interaction is still valid
-            const tryPlay = async () => {
-                try {
-                    await this.els.audio.play();
-                    this.data.isPlaying = true;
-                    this.els.playIcon.className = 'fas fa-pause';
-                    console.log('✅ Auto-playing audio');
-                } catch (e) {
-                    console.log('Autoplay blocked or not ready, user can click play:', e.name);
-                    this.data.isPlaying = false;
-                    this.els.playIcon.className = 'fas fa-play';
-                }
-            };
+        // Try to auto-play regardless of user interaction flag
+        // The browser will block it if not allowed, which we catch
+        const tryPlay = async () => {
+            try {
+                await this.els.audio.play();
+                this.data.isPlaying = true;
+                this.els.playIcon.className = 'fas fa-pause';
+                console.log('✅ Auto-playing audio');
+            } catch (e) {
+                console.log('Autoplay blocked or not ready, user can click play:', e.name);
+                this.data.isPlaying = false;
+                this.els.playIcon.className = 'fas fa-play';
+            }
+        };
 
-            // Try immediately
-            tryPlay();
-        } else {
-            // No user interaction, just prepare for manual play
-            this.data.isPlaying = false;
-            this.els.playIcon.className = 'fas fa-play';
-        }
+        // Try immediately
+        tryPlay();
 
         // Update queue display
         this.updateQueueDisplay();
