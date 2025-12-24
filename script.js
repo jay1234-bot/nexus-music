@@ -16,7 +16,7 @@ const db = firebase.firestore();
 
 // ===== APP CONFIGURATION =====
 const CONFIG = {
-    API_BASE: 'https://krishan7979.vercel.app/api',
+    API_BASE: 'https://krishan7979.vercel.app/api/',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
         SETTINGS: 'nexus_settings',
@@ -613,7 +613,7 @@ const app = {
 
         console.log('Fetching suggestions for:', songId);
         // API format: /api/songs/{id}/suggestions?limit=15
-        const data = await this.fetchAPI(`/songs/${songId}/suggestions?limit=15`);
+        const data = await this.fetchAPI(`songs/${songId}/suggestions?limit=15`);
 
         if (data && data.data) {
             // Filter duplicates (already in queue or library is less critical for queue, but definitely avoid immediate duplicates)
