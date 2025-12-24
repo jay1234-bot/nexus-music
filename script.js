@@ -100,7 +100,8 @@ const app = {
         repeatBtn: document.getElementById('repeat-btn'),
         shuffleBtn: document.getElementById('shuffle-btn'),
         queueList: document.getElementById('queue-list'),
-        lyricsContent: document.getElementById('lyrics-content')
+        lyricsContent: document.getElementById('lyrics-content'),
+        loading: document.getElementById('app-loading')
     },
 
     // ===== INITIALIZATION =====
@@ -140,6 +141,11 @@ const app = {
                 this.data.user = null;
                 this.els.appContainer.classList.add('hidden');
                 this.els.authOverlay.classList.remove('hidden');
+            }
+
+            // Hide loading spinner after auth check
+            if (this.els.loading) {
+                this.els.loading.classList.add('hidden');
             }
         });
     },
