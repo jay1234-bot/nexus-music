@@ -326,6 +326,16 @@ const app = {
 
     // ===== USER MANAGEMENT =====
     async loadUserProfile(firebaseUser) {
+        // Default user object from Auth data (Fallback)
+        let userData = {
+            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            email: firebaseUser.email,
+            isAdmin: firebaseUser.email === CONFIG.ADMIN_EMAIL,
+            isPremium: false,
+            trialRequest: null,
+            uid: firebaseUser.uid
+        };
+
         try {
             const docRef = db.collection('users').doc(firebaseUser.uid);
             const doc = await docRef.get();
@@ -333,33 +343,40 @@ const app = {
             if (doc.exists) {
                 this.data.user = { ...doc.data(), uid: firebaseUser.uid };
             } else {
-                // Should have been created on signup, but create if missing
-                const newUser = {
-                    name: firebaseUser.displayName || 'User',
-                    email: firebaseUser.email,
-                    isAdmin: firebaseUser.email === CONFIG.ADMIN_EMAIL,
-                    isPremium: false,
-                    trialRequest: null,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                await docRef.set(newUser);
-                this.data.user = { ...newUser, uid: firebaseUser.uid };
+                // Try to create profile if missing - might fail if permissions are strict
+                try {
+                    const newUser = {
+                        name: userData.name,
+                        email: userData.email,
+                        isAdmin: userData.isAdmin,
+                        isPremium: false,
+                        trialRequest: null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await docRef.set(newUser);
+                    this.data.user = { ...newUser, uid: firebaseUser.uid };
+                } catch (createError) {
+                    console.warn('Could not create user profile (permissions?):', createError);
+                    this.data.user = userData; // Use fallback
+                }
             }
 
-            // Auto Update Admin Status based on email hardcheck
+            // Auto Update Admin Status based on email hardcheck if needed
             if (this.data.user.email === CONFIG.ADMIN_EMAIL && !this.data.user.isAdmin) {
-                await docRef.update({ isAdmin: true });
+                try { await docRef.update({ isAdmin: true }); } catch (e) { console.warn('Admin update failed', e); }
                 this.data.user.isAdmin = true;
             }
 
             // Check Premium Validity
             await this.checkPremiumStatus();
-
-            this.updateUI();
         } catch (error) {
-            console.error('Error loading profile:', error);
-            this.showToast('Error loading profile');
+            console.warn('Profile sync failed (using local profile):', error.message);
+            // Fallback to basic auth data so UI still works
+            this.data.user = userData;
+            this.showToast('Using basic profile mode');
         }
+
+        this.updateUI();
     },
 
     async checkPremiumStatus() {
