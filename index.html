@@ -9,12 +9,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="icon" type="image/png" href="https://pub-404d3d1646bf4caab306e0c1451fe7f9.r2.dev/Minimalist%20and%20styli.png">
+    <link rel="icon" type="image/png" href="Minimalist and styli.png">
 </head>
 
 <body>
+    <!-- App Loading Spinner -->
+    <div id="app-loading" class="app-loading">
+        <div class="loader-content">
+            <i class="fas fa-compact-disc fa-spin"></i>
+            <div class="loader-text">Nexus Music</div>
+            <div class="loader-subtext">Initializing your experience...</div>
+        </div>
+    </div>
+
     <!-- Auth Overlay -->
-    <div id="auth-overlay" class="auth-overlay">
+    <div id="auth-overlay" class="auth-overlay hidden">
         <div class="auth-container">
             <div class="auth-box" id="login-box">
                 <div class="auth-header">
@@ -23,8 +32,8 @@
                     <p>Premium Music Experience</p>
                 </div>
                 <div class="auth-form">
-                    <input type="email" id="login-email" class="auth-input" placeholder="Email" value="user@demo.com">
-                    <input type="password" id="login-pass" class="auth-input" placeholder="Password" value="123456">
+                    <input type="email" id="login-email" class="auth-input" placeholder="Email">
+                    <input type="password" id="login-pass" class="auth-input" placeholder="Password">
                     <button class="auth-btn" onclick="app.login()">Sign In</button>
                     <p class="auth-switch">Don't have an account? <span onclick="app.switchAuth('signup')">Sign
                             Up</span></p>
@@ -577,4 +586,3 @@
 </body>
 
 </html>
-
