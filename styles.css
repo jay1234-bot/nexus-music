@@ -1763,54 +1763,52 @@ body {
     /* Mini Player Mobile */
     .player-container {
         bottom: 0px;
-        padding: 8px 12px;
-        height: 70px;
-        /* Taller for stacked controls maybe? or keep compact */
+        padding: 0 16px;
+        height: 80px;
+        /* Slightly taller to accommodate content */
+        background: rgba(18, 18, 18, 0.95);
+        /* Better background contrast */
+        backdrop-filter: blur(20px);
     }
 
     .player-wrapper {
-        gap: 8px;
+        gap: 12px;
+        height: 100%;
     }
 
     .player-track {
-        width: auto;
         flex: 1;
+        width: auto;
+        cursor: pointer;
+        /* Show it's clickable */
+    }
+
+    .track-artwork {
+        width: 48px;
+        height: 48px;
     }
 
     .track-info h4 {
-        font-size: 13px;
+        font-size: 14px;
+        margin-bottom: 2px;
     }
 
     .track-info p {
-        font-size: 11px;
+        font-size: 12px;
     }
 
-    /* Hide less important player controls on mobile */
-    .player-main {
-        position: absolute;
-        top: -4px;
-        /* Progress bar area? */
-        left: 0;
-        width: 100%;
-        padding: 0;
-        height: 2px;
-    }
-
-    .control-buttons {
-        display: none;
-        /* Hide controls in mini player on mobile, rely on Extended Player or simplify */
-    }
-
-    /* Wait, usually we want at least Play/Pause. Let's keep Play/Pause */
+    /* Keep controls visible but simplified */
     .player-main {
         position: static;
         width: auto;
         height: auto;
         flex: 0 0 auto;
+        padding: 0;
     }
 
     .control-buttons {
         display: flex;
+        gap: 16px;
     }
 
     .control-buttons button:not(.play-pause-btn) {
@@ -1818,37 +1816,49 @@ body {
         /* Hide skip/shuffle on mini player mobile */
     }
 
-    .track-time,
-    .progress-bar {
-        display: none;
-        /* Hide progress bar in mini player on mobile */
+    /* Fix Big Play Button in Mini Player */
+    .player-container .play-pause-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+        /* Smaller icon */
+        margin: 0;
     }
 
-    .player-extras {
-        display: none;
-        /* Hide volume etc */
+    .track-time,
+    .progress-bar,
+    .player-extras,
+    .track-actions,
+    .volume-control,
+    .quality-badge {
+        display: none !important;
+        /* Force hide extras */
     }
 
     /* Extended Player specific adjustments */
     .extended-content {
-        padding: 20px;
-        gap: 24px;
+        padding: 24px;
+        gap: 20px;
     }
 
     .extended-artwork {
         max-width: 280px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
     .extended-controls .control-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        display: flex !important;
+        /* Ensure controls show in extended view */
     }
 
     .extended-controls .play-pause-btn.large {
-        width: 64px;
-        height: 64px;
-        font-size: 28px;
+        width: 72px;
+        height: 72px;
+        font-size: 32px;
+        display: flex !important;
     }
 }
 
