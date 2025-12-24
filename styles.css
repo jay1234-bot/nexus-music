@@ -529,6 +529,12 @@ body {
     color: var(--accent);
 }
 
+.logout-link:hover {
+    background: rgba(255, 107, 107, 0.1);
+    color: var(--primary);
+}
+
+
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--dark-border);
