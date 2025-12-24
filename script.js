@@ -111,32 +111,18 @@ const app = {
         this.loadSettings();
         this.loadLibrary();
         this.loadPlaylists();
-        this.setupAudioContext();
         this.setupEventListeners();
         this.loadHomeContent();
-    },
-
-    toggleAutoplay() {
-        this.data.autoplay = !this.data.autoplay;
-        // Update UI toggles (we'll add class logic for visual feedback)
-        const btn = document.getElementById('autoplay-btn');
-        if (btn) {
-            btn.classList.toggle('active', this.data.autoplay);
-            btn.innerHTML = this.data.autoplay ? '<i class="fas fa-infinity"></i>' : '<i class="fas fa-infinity" style="opacity:0.4"></i>';
-        }
-        this.showToast(`Autoplay ${this.data.autoplay ? 'On' : 'Off'}`);
     },
 
     setupAuthListener() {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // User is signed in
                 console.log('User signed in:', user.email);
                 await this.loadUserProfile(user);
                 this.els.authOverlay.classList.add('hidden');
                 this.els.appContainer.classList.remove('hidden');
             } else {
-                // User is signed out
                 console.log('User signed out');
                 this.data.user = null;
                 this.els.appContainer.classList.add('hidden');
@@ -359,7 +345,7 @@ const app = {
             email: firebaseUser.email,
             isAdmin: firebaseUser.email === CONFIG.ADMIN_EMAIL,
             isPremium: false,
-            trialRequest: null,
+            premiumRequest: 'none',
             uid: firebaseUser.uid
         };
 
@@ -370,37 +356,38 @@ const app = {
             if (doc.exists) {
                 this.data.user = { ...doc.data(), uid: firebaseUser.uid };
             } else {
-                // Try to create profile if missing - might fail if permissions are strict
+                // Try to create profile if missing
                 try {
                     const newUser = {
                         name: userData.name,
                         email: userData.email,
                         isAdmin: userData.isAdmin,
                         isPremium: false,
-                        trialRequest: null,
+                        premiumRequest: 'none',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     await docRef.set(newUser);
                     this.data.user = { ...newUser, uid: firebaseUser.uid };
                 } catch (createError) {
-                    console.warn('Could not create user profile (permissions?):', createError);
+                    console.warn('Could not create user profile:', createError);
                     this.data.user = userData; // Use fallback
                 }
             }
 
-            // Auto Update Admin Status based on email hardcheck if needed
+            // Auto Update Admin Status
             if (this.data.user.email === CONFIG.ADMIN_EMAIL && !this.data.user.isAdmin) {
-                try { await docRef.update({ isAdmin: true }); } catch (e) { console.warn('Admin update failed', e); }
+                try { await docRef.update({ isAdmin: true }); } catch (e) { }
                 this.data.user.isAdmin = true;
             }
 
-            // Check Premium Validity
-            await this.checkPremiumStatus();
+            // Sync with CONFIG for admin panel visibility
+            if (this.data.user.isAdmin) {
+                const adminLink = document.getElementById('admin-link');
+                if (adminLink) adminLink.classList.remove('hidden');
+            }
         } catch (error) {
-            console.warn('Profile sync failed (using local profile):', error.message);
-            // Fallback to basic auth data so UI still works
+            console.warn('Profile sync failed:', error.message);
             this.data.user = userData;
-            this.showToast('Using basic profile mode');
         }
 
         this.updateUI();
@@ -504,7 +491,20 @@ const app = {
 
         document.getElementById('user-name').textContent = this.data.user.name;
         document.getElementById('user-avatar').textContent = this.data.user.name[0].toUpperCase();
-        document.getElementById('user-badge').textContent = this.data.user.isPremium ? 'Premium' : 'Free';
+
+        const badgeEl = document.getElementById('user-badge');
+        if (badgeEl) {
+            if (this.data.user.isPremium) {
+                badgeEl.textContent = 'Premium';
+                badgeEl.style.color = 'var(--accent)';
+            } else if (this.data.user.premiumRequest === 'pending') {
+                badgeEl.textContent = 'Pending';
+                badgeEl.style.color = 'var(--primary)';
+            } else {
+                badgeEl.textContent = 'Free';
+                badgeEl.style.color = 'var(--text-muted)';
+            }
+        }
 
         // Update Header Profile
         const headerUsername = document.getElementById('header-username');
@@ -522,16 +522,17 @@ const app = {
         const sidebarPremiumBtn = document.getElementById('sidebar-premium-btn');
         if (sidebarPremiumBtn) {
             if (this.data.user.isPremium) {
-                sidebarPremiumBtn.classList.add('hidden');
+                sidebarPremiumBtn.innerHTML = '<i class="fas fa-crown"></i> <span>Premium Active</span>';
+                sidebarPremiumBtn.style.color = 'var(--accent)';
+                sidebarPremiumBtn.onclick = null;
+            } else if (this.data.user.premiumRequest === 'pending') {
+                sidebarPremiumBtn.innerHTML = '<i class="fas fa-clock"></i> <span>Request Pending</span>';
+                sidebarPremiumBtn.style.color = 'var(--primary)';
+                sidebarPremiumBtn.onclick = () => this.showToast('Please wait for Admin approval');
             } else {
-                sidebarPremiumBtn.classList.remove('hidden');
-                if (this.data.user.trialRequest === 'pending') {
-                    sidebarPremiumBtn.innerHTML = '<i class="fas fa-clock"></i> <span>Pending</span>';
-                    sidebarPremiumBtn.onclick = null;
-                } else {
-                    sidebarPremiumBtn.innerHTML = '<i class="fas fa-crown"></i> <span>Go Premium</span>';
-                    sidebarPremiumBtn.onclick = () => app.requestPremium();
-                }
+                sidebarPremiumBtn.innerHTML = '<i class="fas fa-crown"></i> <span>Go Premium</span>';
+                sidebarPremiumBtn.style.color = 'var(--accent)';
+                sidebarPremiumBtn.onclick = () => app.requestPremium();
             }
         }
     },
@@ -1666,11 +1667,11 @@ const app = {
 
         try {
             await db.collection('users').doc(this.data.user.uid).update({
-                trialRequest: 'pending'
+                premiumRequest: 'pending'
             });
-            this.data.user.trialRequest = 'pending';
+            this.data.user.premiumRequest = 'pending';
             this.updateUI();
-            this.showToast('Premium request sent to Admin');
+            this.showToast('Premium request sent to Admin!');
         } catch (error) {
             console.error('Request error:', error);
             this.showToast('Failed to send request');
@@ -1682,39 +1683,53 @@ const app = {
         if (!this.data.user?.isAdmin) return;
 
         try {
-            const pendingSnapshot = await db.collection('users')
-                .where('trialRequest', '==', 'pending')
-                .get();
-
-            const premiumSnapshot = await db.collection('users')
-                .where('isPremium', '==', true)
-                .get();
-
-            document.getElementById('admin-pending').textContent = pendingSnapshot.size;
-            document.getElementById('admin-premium').textContent = premiumSnapshot.size;
-
             const tbody = document.getElementById('admin-tbody');
+            if (!tbody) return;
+
+            const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
             tbody.innerHTML = '';
 
-            if (pendingSnapshot.empty) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No pending requests</td></tr>';
-                return;
-            }
+            let pendingCount = 0;
+            let premiumCount = 0;
 
-            pendingSnapshot.forEach(doc => {
+            snapshot.forEach(doc => {
                 const user = doc.data();
+                const uid = doc.id;
+
+                if (user.isPremium) premiumCount++;
+                if (user.premiumRequest === 'pending') pendingCount++;
+
                 const row = document.createElement('tr');
+                let statusHtml = '';
+                if (user.isPremium) {
+                    statusHtml = '<span class="status-badge premium" style="color:var(--accent); font-weight:600;">Premium</span>';
+                } else if (user.premiumRequest === 'pending') {
+                    statusHtml = '<span class="status-badge pending" style="color:var(--primary); font-weight:600;">Pending</span>';
+                } else {
+                    statusHtml = '<span class="status-badge free" style="color:var(--text-secondary);">Free</span>';
+                }
+
                 row.innerHTML = `
-                    <td>${user.name}</td>
+                    <td>${user.name || 'User'}</td>
                     <td>${user.email}</td>
-                    <td><span style="color:var(--accent); font-weight:600;">Pending</span></td>
+                    <td>${statusHtml}</td>
                     <td>
-                        <button class="admin-action-btn accept" onclick="app.adminAction('${doc.id}', true)">Accept</button>
-                        <button class="admin-action-btn reject" onclick="app.adminAction('${doc.id}', false)">Reject</button>
+                        <div class="admin-actions">
+                            ${!user.isPremium && user.premiumRequest === 'pending' ?
+                        `<button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'approve')">Approve</button>` : ''}
+                            ${user.isPremium ?
+                        `<button class="admin-action-btn reject" onclick="app.adminAction('${uid}', 'cancel')">Cancel</button>
+                                 <button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'extend')">Extend</button>` : ''}
+                            ${!user.isPremium && user.premiumRequest !== 'pending' ?
+                        `<button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'approve')">Make Premium</button>` : ''}
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+
+            document.getElementById('admin-pending').textContent = pendingCount;
+            document.getElementById('admin-premium').textContent = premiumCount;
         } catch (error) {
             console.error('Admin load error:', error);
             this.showToast('Failed to load admin dashboard');
@@ -1767,23 +1782,24 @@ const app = {
         }
     },
 
-    async adminAction(uid, approve) {
+    async adminAction(uid, action) {
         try {
-            const updates = {};
-            if (approve) {
-                updates.isPremium = true;
-                updates.trialRequest = 'approved';
-                // Set expiry to 30 days from now
-                const now = new Date();
-                now.setDate(now.getDate() + 30);
-                updates.premiumExpiry = firebase.firestore.Timestamp.fromDate(now);
-            } else {
-                updates.trialRequest = 'rejected';
+            const docRef = db.collection('users').doc(uid);
+            let updates = {};
+
+            if (action === 'approve') {
+                updates = { isPremium: true, premiumRequest: 'approved' };
+            } else if (action === 'cancel') {
+                updates = { isPremium: false, premiumRequest: 'none' };
+            } else if (action === 'extend') {
+                // For now, extending just resets expiry (logic can be expanded later)
+                updates = { isPremium: true, premiumRequest: 'approved' };
+                this.showToast('Premium extended for user');
             }
 
-            await db.collection('users').doc(uid).update(updates);
+            await docRef.update(updates);
             this.loadAdmin();
-            this.showToast(`Request ${approve ? 'approved' : 'rejected'}`);
+            this.showToast(`User premium updated: ${action}`);
         } catch (error) {
             console.error('Admin action error:', error);
             this.showToast('Action failed');
