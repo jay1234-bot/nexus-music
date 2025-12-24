@@ -1670,84 +1670,191 @@ body {
     gap: 24px;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE ====== */
+
+/* Tablet & Smaller Laptops */
 @media (max-width: 1024px) {
     .sidebar {
-        width: 80px;
+        position: absolute;
+        height: 100%;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
     }
 
-    .sidebar .logo span,
+    .sidebar.collapsed {
+        width: 260px;
+        /* Reuse similar width for open state if we repurpose logic, but better to just use class */
+        transform: translateX(0);
+    }
+
+    /* When sidebar is closed (default on mobile), content takes full width */
+    .main-content {
+        width: 100%;
+    }
+
+    .logo,
     .nav-link span,
-    .user-info,
-    .logout-btn {
-        display: none;
+    .user-info {
+        display: flex;
+        /* Ensure they show when sidebar slides in */
     }
 
-    .nav-link {
-        justify-content: center;
-    }
-
-    .player-track,
-    .player-extras {
-        flex: 0 0 25%;
-    }
-
-    .settings-panel {
-        width: 100%;
-        right: -100%;
-    }
-
-    .queue-panel,
-    .lyrics-panel {
-        width: 100%;
+    /* We need a sidebar toggle in the main header now since sidebar is hidden */
+    .header-search {
+        max-width: 300px;
     }
 }
 
+/* Mobile Devices */
 @media (max-width: 768px) {
     .main-header {
         padding: 16px;
+        gap: 12px;
     }
 
     .header-search {
-        max-width: none;
+        flex: 1;
+        min-width: 0;
+        /* Allow shrinking */
     }
 
-    .premium-btn span {
+    .header-actions {
+        gap: 8px;
+    }
+
+    .header-user-profile {
+        padding: 4px;
+        border-radius: 50%;
+        /* Just circle avatar on mobile */
+    }
+
+    .header-username {
         display: none;
+        /* Hide name on small screens */
     }
 
     .pages-container {
-        padding: 20px;
+        padding: 16px;
+        padding-bottom: 100px;
+        /* Space for mini player */
     }
 
     .hero-title {
-        font-size: 32px;
+        font-size: 28px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
     }
 
     .card-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 16px;
-    }
-
-    .player-main {
-        padding: 0 16px;
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns for mobile */
         gap: 12px;
     }
 
-    .track-actions {
-        display: none;
+    .song-card {
+        padding: 12px;
+    }
+
+    /* Mini Player Mobile */
+    .player-container {
+        bottom: 0px;
+        padding: 8px 12px;
+        height: 70px;
+        /* Taller for stacked controls maybe? or keep compact */
+    }
+
+    .player-wrapper {
+        gap: 8px;
+    }
+
+    .player-track {
+        width: auto;
+        flex: 1;
+    }
+
+    .track-info h4 {
+        font-size: 13px;
+    }
+
+    .track-info p {
+        font-size: 11px;
+    }
+
+    /* Hide less important player controls on mobile */
+    .player-main {
+        position: absolute;
+        top: -4px;
+        /* Progress bar area? */
+        left: 0;
+        width: 100%;
+        padding: 0;
+        height: 2px;
     }
 
     .control-buttons {
-        gap: 12px;
+        display: none;
+        /* Hide controls in mini player on mobile, rely on Extended Player or simplify */
     }
 
-    .player-extras {
+    /* Wait, usually we want at least Play/Pause. Let's keep Play/Pause */
+    .player-main {
+        position: static;
+        width: auto;
+        height: auto;
         flex: 0 0 auto;
     }
 
-    .quality-badge,
-    .volume-control {
+    .control-buttons {
+        display: flex;
+    }
+
+    .control-buttons button:not(.play-pause-btn) {
         display: none;
+        /* Hide skip/shuffle on mini player mobile */
+    }
+
+    .track-time,
+    .progress-bar {
+        display: none;
+        /* Hide progress bar in mini player on mobile */
+    }
+
+    .player-extras {
+        display: none;
+        /* Hide volume etc */
+    }
+
+    /* Extended Player specific adjustments */
+    .extended-content {
+        padding: 20px;
+        gap: 24px;
+    }
+
+    .extended-artwork {
+        max-width: 280px;
+    }
+
+    .extended-controls .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .extended-controls .play-pause-btn.large {
+        width: 64px;
+        height: 64px;
+        font-size: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+        /* 1 column for very small screens */
     }
 }
