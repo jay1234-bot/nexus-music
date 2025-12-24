@@ -244,16 +244,23 @@ body {
     justify-content: center;
     min-height: 0;
     padding: 20px 0;
+    overflow: hidden;
+    /* Prevent spillover */
 }
 
 .extended-artwork {
     width: 100%;
     max-width: 350px;
+    /* Remove fixed aspect ratio to allow shrinking if needed, or keep it but limit height */
     aspect-ratio: 1;
+    max-height: 45vh;
+    /* Key fix: Don't let artwork take more than 45% of view height */
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    margin: auto;
+    /* Center in container */
 }
 
 .extended-artwork img {
