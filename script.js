@@ -208,8 +208,20 @@ const app = {
 
         // Volume
         this.els.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
+        document.getElementById('search-input').addEventListener('input', (e) => this.handleSearch(e.target.value));
 
-        // Navigation
+        // Add click handler to Mini Player track info to open Extended Player
+        const playerTrack = document.querySelector('.player-track');
+        if (playerTrack) {
+            playerTrack.addEventListener('click', (e) => {
+                // Prevent opening if clicking on specifically interactive elements inside like buttons
+                if (e.target.closest('button')) return;
+                this.toggleExtendedPlayer();
+            });
+            playerTrack.style.cursor = 'pointer'; // Make it look clickable
+        }
+
+        // Player Controlsn
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
