@@ -2161,8 +2161,8 @@ body {
     /* Center vertically */
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    /* Space between elements */
+    gap: 32px;
+    /* Increased space between main elements */
     height: 100%;
     /* Take full height for vertical centering */
 }
@@ -2170,29 +2170,30 @@ body {
 /* Specific spacing for active queue state */
 .extended-player.queue-active .extended-artwork {
     margin-top: 0;
-    margin-bottom: 20px;
-    max-width: 320px;
+    margin-bottom: 24px;
+    max-width: 340px;
     /* Slightly larger image space */
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    /* nicer shadow */
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    /* Premium shadow */
 }
 
 .extended-player.queue-active .track-info {
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     width: 100%;
 }
 
 .extended-player.queue-active .progress-container {
     width: 100%;
-    margin: 10px 0 20px 0;
-    /* Clear spacing for seekbar */
+    margin: 20px 0 50px 0;
+    /* Significant space below seekbar */
 }
 
 .extended-player.queue-active .extended-controls {
-    margin-bottom: 0;
-    gap: 32px;
-    /* More space between buttons */
+    margin-bottom: 20px;
+    /* Add some bottom spacing */
+    gap: 40px;
+    /* Even more space between buttons */
     width: 100%;
     justify-content: center;
 }
