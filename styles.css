@@ -2149,25 +2149,25 @@ body {
 }
 
 .extended-player.queue-active .extended-content {
-    width: calc(100% - 400px);
-    /* explicit space for queue */
+    width: calc(100% - 380px);
+    /* Adjust width to match queue panel width */
     max-width: none;
     margin: 0;
-    padding: 40px 60px;
+    padding: 0 40px;
+    /* Side padding only here */
     align-items: center;
     justify-content: flex-start;
-    /* Start from top to allow scrolling */
     display: flex;
     flex-direction: column;
     gap: 32px;
     height: 100vh;
-    /* Full viewport height */
+    overflow-y: overlay;
+    /* Better scrollbar behavior if supported */
     overflow-y: auto;
-    /* Scrollable if content is too tall */
-    padding-top: 10vh;
-    /* Visual centering attempt */
-    padding-bottom: 100px;
-    /* Space for scrolling */
+    padding-top: 15vh;
+    /* Increase top padding significantly to clear header */
+    padding-bottom: 150px;
+    /* Ensure bottom controls are never cut */
 }
 
 /* Hide scrollbar for cleaner look */
