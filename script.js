@@ -14,10 +14,18 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Initialize Supabase
+const supabaseClient = window.supabase.createClient(
+    "https://rzolplahdqkdbsynjhmm.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6b2xwbGFoZHFrZGJzeW5qaG1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NzM1MjAsImV4cCI6MjA4MjE0OTUyMH0.3k4Gh_w5PCFT9IrYPHW_V0OhwAnNtcYWopvMw6j3XEA"
+);
+
 // ===== APP CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://krishan7979.vercel.app/api/',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
+    SUPABASE_URL: "https://rzolplahdqkdbsynjhmm.supabase.co",
+    SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6b2xwbGFoZHFrZGJzeW5qaG1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY1NzM1MjAsImV4cCI6MjA4MjE0OTUyMH0.3k4Gh_w5PCFT9IrYPHW_V0OhwAnNtcYWopvMw6j3XEA",
     STORAGE_KEYS: {
         SETTINGS: 'nexus_settings',
         LIBRARY: 'nexus_library',
