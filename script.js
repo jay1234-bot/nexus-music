@@ -1040,6 +1040,15 @@ const app = {
             this.loadTrack(this.data.queueIndex + 1);
         } else if (this.data.repeatMode === 'all') {
             this.loadTrack(0);
+        } else if (this.data.settings.autoplay && this.data.currentTrack) {
+            // If at end and autoplay is on, fetch more
+            this.showToast('Autoplay: Finding similar songs...');
+            this.fetchSuggestions(this.data.currentTrack.id).then(() => {
+                // After fetching, try to play next if added
+                if (this.data.queueIndex < this.data.queue.length - 1) {
+                    this.loadTrack(this.data.queueIndex + 1);
+                }
+            });
         }
     },
 
@@ -1051,7 +1060,7 @@ const app = {
             // Check for Autoplay if we are at the end of the queue
             // and not in 'all' repeat mode (as skipNext handles 'all' by looping)
             if (this.data.queueIndex >= this.data.queue.length - 1 && this.data.repeatMode !== 'all') {
-                if (this.data.autoplay && this.data.currentTrack) {
+                if (this.data.settings.autoplay && this.data.currentTrack) {
                     this.showToast('Autoplay: Finding similar songs...');
                     await this.fetchSuggestions(this.data.currentTrack.id);
                 }
@@ -1265,6 +1274,12 @@ const app = {
         this.els.volumeSlider.value = this.data.volume;
         this.setVolume(this.data.volume);
 
+        // Apply autoplay button state
+        const autoplayBtn = document.getElementById('autoplay-btn');
+        if (autoplayBtn) {
+            autoplayBtn.classList.toggle('active', this.data.settings.autoplay);
+        }
+
         this.applyEnhancements();
     },
 
@@ -1337,6 +1352,23 @@ const app = {
     addToQueue() {
         // Implementation for adding to queue
         this.showToast('Added to queue');
+    },
+
+    toggleAutoplay() {
+        this.data.settings.autoplay = !this.data.settings.autoplay;
+        this.saveSettings();
+
+        const btn = document.getElementById('autoplay-btn');
+        if (btn) {
+            btn.classList.toggle('active', this.data.settings.autoplay);
+            // Optional: Update icon color or style specifically if needed, 
+            // but .active class usually checks that in CSS
+            if (this.data.settings.autoplay) {
+                this.showToast('Autoplay enabled');
+            } else {
+                this.showToast('Autoplay disabled');
+            }
+        }
     },
 
     // ===== LYRICS =====
