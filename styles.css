@@ -192,6 +192,7 @@ body {
 }
 
 /* ===== EXTENDED PLAYER ===== */
+/* ===== EXTENDED PLAYER ===== */
 .extended-player {
     position: fixed;
     top: 0;
@@ -203,10 +204,15 @@ body {
     display: flex;
     flex-direction: column;
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    /* Enable vertical scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scrolling on iOS */
 }
 
 .extended-background {
-    position: absolute;
+    position: fixed;
+    /* Fix background so it doesn't scroll away */
     top: 0;
     left: 0;
     width: 100%;
@@ -219,13 +225,17 @@ body {
 
 .extended-content {
     flex: 1;
+    /* Allow content to determine height */
     display: flex;
     flex-direction: column;
     padding: 24px;
     max-width: 600px;
     width: 100%;
     margin: 0 auto;
-    gap: 32px;
+    gap: 20px;
+    /* Reduced gap to fit more on screen */
+    min-height: min-content;
+    /* Ensure it takes necessary height */
 }
 
 .extended-header {
@@ -1844,13 +1854,19 @@ body {
 
     /* Extended Player specific adjustments */
     .extended-content {
-        padding: 24px;
-        gap: 20px;
+        padding: 16px;
+        /* Reduced padding for mobile */
+        gap: 16px;
+        /* Further reduced gap */
+        justify-content: flex-start;
+        /* Ensure content starts at top */
     }
 
     .extended-artwork {
         max-width: 280px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        margin-top: 20px;
+        /* Add some top margin for spacing */
     }
 
     .extended-controls .control-btn {
@@ -1866,6 +1882,11 @@ body {
         height: 72px;
         font-size: 32px;
         display: flex !important;
+    }
+
+    /* Ensure last element has space */
+    .extended-controls {
+        margin-bottom: 40px;
     }
 }
 
