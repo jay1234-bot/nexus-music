@@ -2135,17 +2135,30 @@ body {
 .extended-player.queue-active {
     flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    /* Shift content to start (left) */
 }
 
 .extended-content {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Ensure content is centered when alone, but shifts when queue is active */
+    width: 100%;
+    max-width: 600px;
+    /* Prevent it getting too wide */
+    margin: 0 auto;
 }
 
 .extended-player.queue-active .extended-content {
-    width: 50%;
+    width: calc(100% - 420px);
+    /* explicit space for queue */
+    max-width: none;
     margin: 0;
-    padding: 32px;
+    padding: 32px 32px 32px 64px;
+    /* More padding on left to balance */
+    align-items: flex-start;
+    /* Align content leftish or center */
+    display: flex;
+    flex-direction: column;
 }
 
 .extended-queue-panel {
@@ -2153,11 +2166,14 @@ body {
     top: 50%;
     right: 32px;
     transform: translateY(-50%) translateX(20px);
-    width: 400px;
+    width: 380px;
+    /* Slightly narrower */
     height: 85vh;
-    background: rgba(20, 27, 45, 0.6);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* More transparent glass effect as requested */
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
     display: flex;
     flex-direction: column;
@@ -2165,7 +2181,7 @@ body {
     pointer-events: none;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 2005;
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
 }
 
 .extended-player.queue-active .extended-queue-panel.active {
@@ -2178,18 +2194,20 @@ body {
 
 /* Glass Header */
 .glass-header {
-    padding: 20px 24px;
+    padding: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .glass-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    color: white;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Extended Queue List */
@@ -2200,7 +2218,7 @@ body {
 }
 
 .extended-queue-list::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .extended-queue-list::-webkit-scrollbar-track {
@@ -2208,8 +2226,8 @@ body {
 }
 
 .extended-queue-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
 }
 
 /* Reuse queue item styles but tweak for inside glass */
@@ -2219,23 +2237,30 @@ body {
     padding: 10px;
     border-radius: 12px;
     margin-bottom: 8px;
+    transition: background 0.2s ease;
 }
 
 .extended-queue-list .queue-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .extended-queue-list .queue-item.active {
-    background: rgba(255, 107, 107, 0.15);
-    border-color: rgba(255, 107, 107, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    /* Lighter/cleaner active state */
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .extended-queue-list .queue-item-title {
-    color: white;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .extended-queue-list .queue-item-artist {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.8);
+    /* increased visibility */
+    font-size: 0.9em;
 }
 
 /* Responsive adjustments */
