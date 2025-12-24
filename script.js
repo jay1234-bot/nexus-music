@@ -58,7 +58,9 @@ const app = {
             volumeBoost: 0,
             lowDataMode: true,
             cacheAudio: false,
-            autoQuality: false
+            cacheAudio: false,
+            autoQuality: false,
+            autoplay: true // Default to on
         },
         library: [],
         playlists: []
@@ -103,6 +105,17 @@ const app = {
         this.setupAudioContext();
         this.setupEventListeners();
         this.loadHomeContent();
+    },
+
+    toggleAutoplay() {
+        this.data.autoplay = !this.data.autoplay;
+        // Update UI toggles (we'll add class logic for visual feedback)
+        const btn = document.getElementById('autoplay-btn');
+        if (btn) {
+            btn.classList.toggle('active', this.data.autoplay);
+            btn.innerHTML = this.data.autoplay ? '<i class="fas fa-infinity"></i>' : '<i class="fas fa-infinity" style="opacity:0.4"></i>';
+        }
+        this.showToast(`Autoplay ${this.data.autoplay ? 'On' : 'Off'}`);
     },
 
     setupAuthListener() {
@@ -574,28 +587,51 @@ const app = {
     // ===== API INTEGRATION =====
     async fetchAPI(endpoint) {
         try {
-            const url = `${CONFIG.API_BASE}/${endpoint}`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
-                mode: 'cors'
-            });
+            const url = `${CONFIG.API_BASE}${endpoint}`;
+            const response = await fetch(url);
 
             if (!response.ok) {
+                // Return empty structure for search/suggestions on error
+                if (endpoint.includes('suggestions')) return { data: { results: [] } };
                 throw new Error(`API returned ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
-            // Return full response object - let calling function handle nested structure
             return data;
-
         } catch (error) {
             console.error('API Error:', error.message);
+            // Silent fail for suggestions
+            if (endpoint.includes('suggestions')) return { data: [] };
+
             this.showToast('Failed to load content. Please check your connection.');
             return null;
+        }
+    },
+
+    async fetchSuggestions(songId) {
+        if (!songId) return;
+
+        console.log('Fetching suggestions for:', songId);
+        // API format: /api/songs/{id}/suggestions?limit=15
+        const data = await this.fetchAPI(`/songs/${songId}/suggestions?limit=15`);
+
+        if (data && data.data) {
+            // Filter duplicates (already in queue or library is less critical for queue, but definitely avoid immediate duplicates)
+            const currentQueueIds = new Set(this.data.queue.map(q => q.id));
+            const newSongs = data.data.filter(s => !currentQueueIds.has(s.id));
+
+            if (newSongs.length > 0) {
+                this.data.queue.push(...newSongs);
+                this.updateQueueUI(); // If queue main list is visible
+
+                // Also update Extended Queue if we ever add that list there
+
+                // Show toast only if it was an explicit "running out" situation or first time
+                console.log(`Autoplay: Added ${newSongs.length} similar songs`);
+                this.showToast(`Autoplay: Queued similar songs`);
+            } else {
+                console.log('Autoplay: No new unique suggestions found');
+            }
         }
     },
 
@@ -1007,12 +1043,20 @@ const app = {
         }
     },
 
-    handleTrackEnd() {
+    async handleTrackEnd() {
         if (this.data.repeatMode === 'one') {
-            this.loadTrack(this.data.queueIndex);
-        } else if (this.data.repeatMode === 'all') {
-            this.skipNext();
-        } else if (this.data.queueIndex < this.data.queue.length - 1) {
+            this.els.audio.currentTime = 0;
+            this.els.audio.play();
+        } else {
+            // Check for Autoplay if we are at the end of the queue
+            // and not in 'all' repeat mode (as skipNext handles 'all' by looping)
+            if (this.data.queueIndex >= this.data.queue.length - 1 && this.data.repeatMode !== 'all') {
+                if (this.data.autoplay && this.data.currentTrack) {
+                    this.showToast('Autoplay: Finding similar songs...');
+                    await this.fetchSuggestions(this.data.currentTrack.id);
+                }
+            }
+
             this.skipNext();
         }
     },
@@ -1253,10 +1297,40 @@ const app = {
         });
     },
 
+    updateQueueUI() {
+        const container = this.els.queueList;
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (this.data.queue.length === 0) {
+            container.innerHTML = '<p class="empty-state">Queue is empty</p>';
+            return;
+        }
+
+        this.data.queue.forEach((song, index) => {
+            const div = document.createElement('div');
+            div.className = `queue-item ${index === this.data.queueIndex ? 'active' : ''}`;
+            div.onclick = () => this.loadTrack(index);
+
+            div.innerHTML = `
+                <div class="queue-item-image">
+                    <img src="${this.getImageUrl(song, '100x100')}" loading="lazy" alt="">
+                </div>
+                <div class="queue-item-info">
+                    <div class="queue-item-title">${song.name || song.title}</div>
+                    <div class="queue-item-artist">${this.getArtistName(song)}</div>
+                </div>
+                ${index === this.data.queueIndex ? '<i class="fas fa-volume-up" style="color:var(--primary)"></i>' : ''}
+            `;
+            container.appendChild(div);
+        });
+    },
+
     toggleQueue() {
         this.els.queuePanel.classList.toggle('active');
         if (this.els.queuePanel.classList.contains('active')) {
             this.els.lyricsPanel.classList.remove('active');
+            this.updateQueueUI();
         }
     },
 
