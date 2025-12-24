@@ -1931,9 +1931,340 @@ body {
     }
 }
 
+
+
+.sidebar.collapsed {
+    width: 260px;
+    /* Reuse similar width for open state if we repurpose logic, but better to just use class */
+    transform: translateX(0);
+}
+
+/* When sidebar is closed (default on mobile), content takes full width */
+.main-content {
+    width: 100%;
+}
+
+.logo,
+.nav-link span,
+.user-info {
+    display: flex;
+    /* Ensure they show when sidebar slides in */
+}
+
+/* We need a sidebar toggle in the main header now since sidebar is hidden */
+.header-search {
+    max-width: 300px;
+}
+
+
+/* Mobile Devices */
+@media (max-width: 768px) {
+    .main-header {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .header-search {
+        flex: 1;
+        min-width: 0;
+        /* Allow shrinking */
+    }
+
+    .header-actions {
+        gap: 8px;
+    }
+
+    .header-user-profile {
+        padding: 4px;
+        border-radius: 50%;
+        /* Just circle avatar on mobile */
+    }
+
+    .header-username {
+        display: none;
+        /* Hide name on small screens */
+    }
+
+    .pages-container {
+        padding: 16px;
+        padding-bottom: 100px;
+        /* Space for mini player */
+    }
+
+    .hero-title {
+        font-size: 28px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns for mobile */
+        gap: 12px;
+    }
+
+    .song-card {
+        padding: 12px;
+    }
+
+    /* Mini Player Mobile */
+    .player-container {
+        bottom: 0px;
+        padding: 0 16px;
+        height: 80px;
+        /* Slightly taller to accommodate content */
+        background: rgba(18, 18, 18, 0.95);
+        /* Better background contrast */
+        backdrop-filter: blur(20px);
+    }
+
+    .player-wrapper {
+        gap: 12px;
+        height: 100%;
+    }
+
+    .player-track {
+        flex: 1;
+        width: auto;
+        cursor: pointer;
+        /* Show it's clickable */
+    }
+
+    .track-artwork {
+        width: 48px;
+        height: 48px;
+    }
+
+    .track-info h4 {
+        font-size: 14px;
+        margin-bottom: 2px;
+    }
+
+    .track-info p {
+        font-size: 12px;
+    }
+
+    /* Keep controls visible but simplified */
+    .player-main {
+        position: static;
+        width: auto;
+        height: auto;
+        flex: 0 0 auto;
+        padding: 0;
+    }
+
+    .control-buttons {
+        display: flex;
+        gap: 16px;
+    }
+
+    .control-buttons button:not(.play-pause-btn) {
+        display: none;
+        /* Hide skip/shuffle on mini player mobile */
+    }
+
+    /* Fix Big Play Button in Mini Player */
+    .player-container .play-pause-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+        /* Smaller icon */
+        margin: 0;
+    }
+
+    .track-time,
+    .progress-bar,
+    .player-extras,
+    .track-actions,
+    .volume-control,
+    .quality-badge {
+        display: none !important;
+        /* Force hide extras */
+    }
+
+    /* Extended Player specific adjustments */
+    .extended-content {
+        padding: 16px;
+        /* Reduced padding for mobile */
+        gap: 16px;
+        /* Further reduced gap */
+        justify-content: flex-start;
+        /* Ensure content starts at top */
+    }
+
+    .extended-artwork {
+        max-width: 280px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        margin-top: 20px;
+        /* Add some top margin for spacing */
+    }
+
+    .extended-controls .control-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        display: flex !important;
+        /* Ensure controls show in extended view */
+    }
+
+    .extended-controls .play-pause-btn.large {
+        width: 72px;
+        height: 72px;
+        font-size: 32px;
+        display: flex !important;
+    }
+
+    /* Ensure last element has space */
+    .extended-controls {
+        margin-bottom: 40px;
+    }
+}
+
 @media (max-width: 480px) {
     .card-grid {
         grid-template-columns: 1fr;
         /* 1 column for very small screens */
+    }
+}
+
+/* Extended Player Split View */
+.extended-player.queue-active {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.extended-content {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.extended-player.queue-active .extended-content {
+    width: 50%;
+    margin: 0;
+    padding: 32px;
+}
+
+.extended-queue-panel {
+    position: absolute;
+    top: 50%;
+    right: 32px;
+    transform: translateY(-50%) translateX(20px);
+    width: 400px;
+    height: 85vh;
+    background: rgba(20, 27, 45, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2005;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
+}
+
+.extended-player.queue-active .extended-queue-panel.active {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+    pointer-events: all;
+    display: flex;
+    /* Ensure it's flex */
+}
+
+/* Glass Header */
+.glass-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+}
+
+/* Extended Queue List */
+.extended-queue-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.extended-queue-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.extended-queue-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.extended-queue-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+/* Reuse queue item styles but tweak for inside glass */
+.extended-queue-list .queue-item {
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 10px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.extended-queue-list .queue-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.extended-queue-list .queue-item.active {
+    background: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+.extended-queue-list .queue-item-title {
+    color: white;
+}
+
+.extended-queue-list .queue-item-artist {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .extended-player.queue-active {
+        flex-direction: column;
+    }
+
+    .extended-player.queue-active .extended-content {
+        width: 100%;
+        opacity: 0.3;
+        /* Dim content behind */
+        pointer-events: none;
+    }
+
+    .extended-queue-panel {
+        width: 100%;
+        height: 70vh;
+        bottom: 0;
+        top: auto;
+        right: 0;
+        left: 0;
+        border-radius: 24px 24px 0 0;
+        transform: translateY(100%);
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .extended-player.queue-active .extended-queue-panel.active {
+        transform: translateY(0);
     }
 }
