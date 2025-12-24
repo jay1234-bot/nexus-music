@@ -1,10 +1,24 @@
-// ===== CONFIGURATION =====
+// ===== FIREBASE CONFIGURATION =====
+const firebaseConfig = {
+    apiKey: "AIzaSyBpwQ3QKKUCpqRMfX_9HUu2ebO525GYvJY",
+    authDomain: "livechat-6b08b.firebaseapp.com",
+    projectId: "livechat-6b08b",
+    storageBucket: "livechat-6b08b.firebasestorage.app",
+    messagingSenderId: "879187762003",
+    appId: "1:879187762003:web:159293e3708c413a7edfa6",
+    measurementId: "G-ZD2V91L9DW"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ===== APP CONFIGURATION =====
 const CONFIG = {
     API_BASE: 'https://krishan7979.vercel.app/api',
     ADMIN_EMAIL: 'astrohari09@outlook.com',
     STORAGE_KEYS: {
-        USERS: 'nexus_users',
-        SESSION: 'nexus_session',
         SETTINGS: 'nexus_settings',
         LIBRARY: 'nexus_library',
         PLAYLISTS: 'nexus_playlists'
@@ -80,15 +94,33 @@ const app = {
     },
 
     // ===== INITIALIZATION =====
+    // ===== INITIALIZATION =====
     init() {
-        this.loadUsers();
+        this.setupAuthListener();
         this.loadSettings();
         this.loadLibrary();
         this.loadPlaylists();
-        this.checkSession();
         this.setupAudioContext();
         this.setupEventListeners();
         this.loadHomeContent();
+    },
+
+    setupAuthListener() {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is signed in
+                console.log('User signed in:', user.email);
+                await this.loadUserProfile(user);
+                this.els.authOverlay.classList.add('hidden');
+                this.els.appContainer.classList.remove('hidden');
+            } else {
+                // User is signed out
+                console.log('User signed out');
+                this.data.user = null;
+                this.els.appContainer.classList.add('hidden');
+                this.els.authOverlay.classList.remove('hidden');
+            }
+        });
     },
 
     // ===== AUDIO CONTEXT SETUP =====
@@ -281,44 +313,67 @@ const app = {
     },
 
     // ===== USER MANAGEMENT =====
-    loadUsers() {
-        const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.USERS);
-        if (stored) {
-            this.data.users = JSON.parse(stored);
-        } else {
-            this.data.users = [
-                {
-                    name: 'Admin',
-                    email: CONFIG.ADMIN_EMAIL,
-                    pass: 'admin123',
-                    isPremium: true,
-                    isAdmin: true,
-                    trialRequest: null
-                },
-                {
-                    name: 'User',
-                    email: 'user@demo.com',
-                    pass: '123456',
+    async loadUserProfile(firebaseUser) {
+        try {
+            const docRef = db.collection('users').doc(firebaseUser.uid);
+            const doc = await docRef.get();
+
+            if (doc.exists) {
+                this.data.user = { ...doc.data(), uid: firebaseUser.uid };
+            } else {
+                // Should have been created on signup, but create if missing
+                const newUser = {
+                    name: firebaseUser.displayName || 'User',
+                    email: firebaseUser.email,
+                    isAdmin: firebaseUser.email === CONFIG.ADMIN_EMAIL,
                     isPremium: false,
-                    isAdmin: false,
-                    trialRequest: null
-                }
-            ];
-            this.saveUsers();
+                    trialRequest: null,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                await docRef.set(newUser);
+                this.data.user = { ...newUser, uid: firebaseUser.uid };
+            }
+
+            // Auto Update Admin Status based on email hardcheck
+            if (this.data.user.email === CONFIG.ADMIN_EMAIL && !this.data.user.isAdmin) {
+                await docRef.update({ isAdmin: true });
+                this.data.user.isAdmin = true;
+            }
+
+            // Check Premium Validity
+            await this.checkPremiumStatus();
+
+            this.updateUI();
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            this.showToast('Error loading profile');
         }
     },
 
-    saveUsers() {
-        localStorage.setItem(CONFIG.STORAGE_KEYS.USERS, JSON.stringify(this.data.users));
-    },
+    async checkPremiumStatus() {
+        if (!this.data.user?.isPremium) return;
 
-    checkSession() {
-        const stored = localStorage.getItem(CONFIG.STORAGE_KEYS.SESSION);
-        if (stored) {
-            this.data.user = JSON.parse(stored);
-            this.els.authOverlay.classList.add('hidden');
-            this.els.appContainer.classList.remove('hidden');
-            this.updateUI();
+        if (this.data.user.premiumExpiry) {
+            // Check if expired
+            const now = Date.now();
+            // Firestore timestamp to millis
+            const expiry = this.data.user.premiumExpiry.toMillis ? this.data.user.premiumExpiry.toMillis() : this.data.user.premiumExpiry;
+
+            if (now > expiry) {
+                console.log('Premium expired');
+                await db.collection('users').doc(this.data.user.uid).update({
+                    isPremium: false,
+                    premiumExpiry: null,
+                    trialRequest: null // Reset request so they can ask again or buy
+                });
+                this.data.user.isPremium = false;
+                this.data.user.premiumExpiry = null;
+                this.showToast('Your Premium has expired');
+            } else {
+                // Show time remaining in UI if needed, or just log
+                const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+                console.log(`Premium active. Days left: ${daysLeft}`);
+            }
         }
     },
 
@@ -328,24 +383,20 @@ const app = {
         document.getElementById('signup-box').classList.toggle('hidden', mode === 'login');
     },
 
-    login() {
+    async login() {
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-pass').value;
-        const user = this.data.users.find(u => u.email === email && u.pass === pass);
 
-        if (user) {
-            this.data.user = user;
-            localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION, JSON.stringify(user));
-            this.els.authOverlay.classList.add('hidden');
-            this.els.appContainer.classList.remove('hidden');
-            this.updateUI();
-            this.showToast(`Welcome back, ${user.name}!`);
-        } else {
-            this.showToast('Invalid credentials');
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+            this.showToast('Signed in successfully');
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showToast(error.message);
         }
     },
 
-    signup() {
+    async signup() {
         const name = document.getElementById('signup-name').value;
         const email = document.getElementById('signup-email').value;
         const pass = document.getElementById('signup-pass').value;
@@ -355,36 +406,35 @@ const app = {
             return;
         }
 
-        if (this.data.users.find(u => u.email === email)) {
-            this.showToast('Email already exists');
-            return;
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+            const user = userCredential.user;
+
+            // Create User Profile in Firestore
+            await db.collection('users').doc(user.uid).set({
+                name: name,
+                email: email,
+                isAdmin: email === CONFIG.ADMIN_EMAIL,
+                isPremium: false,
+                trialRequest: null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            this.showToast(`Welcome, ${name}!`);
+        } catch (error) {
+            console.error('Signup error:', error);
+            this.showToast(error.message);
         }
-
-        const user = {
-            name,
-            email,
-            pass,
-            isPremium: false,
-            isAdmin: email === CONFIG.ADMIN_EMAIL,
-            trialRequest: null
-        };
-
-        this.data.users.push(user);
-        this.saveUsers();
-        this.data.user = user;
-        localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION, JSON.stringify(user));
-        this.els.authOverlay.classList.add('hidden');
-        this.els.appContainer.classList.remove('hidden');
-        this.updateUI();
-        this.showToast(`Welcome, ${user.name}!`);
     },
 
-    logout() {
-        this.data.user = null;
-        localStorage.removeItem(CONFIG.STORAGE_KEYS.SESSION);
-        this.els.appContainer.classList.add('hidden');
-        this.els.authOverlay.classList.remove('hidden');
-        this.stop();
+    async logout() {
+        try {
+            await auth.signOut();
+            this.stop();
+            this.showToast('Signed out');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
     },
 
     // ===== UI UPDATES =====
@@ -1197,64 +1247,86 @@ const app = {
     },
 
     // ===== PREMIUM =====
-    requestPremium() {
+    async requestPremium() {
         if (!this.data.user) return;
 
-        const userIndex = this.data.users.findIndex(u => u.email === this.data.user.email);
-        if (userIndex > -1) {
-            this.data.users[userIndex].trialRequest = 'pending';
+        try {
+            await db.collection('users').doc(this.data.user.uid).update({
+                trialRequest: 'pending'
+            });
             this.data.user.trialRequest = 'pending';
-            this.saveUsers();
             this.updateUI();
-            this.showToast('Premium request sent');
+            this.showToast('Premium request sent to Admin');
+        } catch (error) {
+            console.error('Request error:', error);
+            this.showToast('Failed to send request');
         }
     },
 
     // ===== ADMIN =====
-    loadAdmin() {
+    async loadAdmin() {
         if (!this.data.user?.isAdmin) return;
 
-        const pending = this.data.users.filter(u => u.trialRequest === 'pending');
-        const premium = this.data.users.filter(u => u.isPremium);
+        try {
+            const pendingSnapshot = await db.collection('users')
+                .where('trialRequest', '==', 'pending')
+                .get();
 
-        document.getElementById('admin-pending').textContent = pending.length;
-        document.getElementById('admin-premium').textContent = premium.length;
+            const premiumSnapshot = await db.collection('users')
+                .where('isPremium', '==', true)
+                .get();
 
-        const tbody = document.getElementById('admin-tbody');
-        tbody.innerHTML = '';
+            document.getElementById('admin-pending').textContent = pendingSnapshot.size;
+            document.getElementById('admin-premium').textContent = premiumSnapshot.size;
 
-        if (pending.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No pending requests</td></tr>';
-            return;
+            const tbody = document.getElementById('admin-tbody');
+            tbody.innerHTML = '';
+
+            if (pendingSnapshot.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No pending requests</td></tr>';
+                return;
+            }
+
+            pendingSnapshot.forEach(doc => {
+                const user = doc.data();
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td><span style="color:var(--accent); font-weight:600;">Pending</span></td>
+                    <td>
+                        <button class="admin-action-btn accept" onclick="app.adminAction('${doc.id}', true)">Accept</button>
+                        <button class="admin-action-btn reject" onclick="app.adminAction('${doc.id}', false)">Reject</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Admin load error:', error);
+            this.showToast('Failed to load admin dashboard');
         }
-
-        pending.forEach(user => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${user.name}</td>
-                <td>${user.email}</td>
-                <td><span style="color:var(--accent); font-weight:600;">Pending</span></td>
-                <td>
-                    <button class="admin-action-btn accept" onclick="app.adminAction('${user.email}', true)">Accept</button>
-                    <button class="admin-action-btn reject" onclick="app.adminAction('${user.email}', false)">Reject</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
     },
 
-    adminAction(email, approve) {
-        const userIndex = this.data.users.findIndex(u => u.email === email);
-        if (userIndex > -1) {
+    async adminAction(uid, approve) {
+        try {
+            const updates = {};
             if (approve) {
-                this.data.users[userIndex].isPremium = true;
-                this.data.users[userIndex].trialRequest = 'active';
+                updates.isPremium = true;
+                updates.trialRequest = 'approved';
+                // Set expiry to 30 days from now
+                const now = new Date();
+                now.setDate(now.getDate() + 30);
+                updates.premiumExpiry = firebase.firestore.Timestamp.fromDate(now);
             } else {
-                this.data.users[userIndex].trialRequest = null;
+                updates.trialRequest = 'rejected';
             }
-            this.saveUsers();
+
+            await db.collection('users').doc(uid).update(updates);
             this.loadAdmin();
             this.showToast(`Request ${approve ? 'approved' : 'rejected'}`);
+        } catch (error) {
+            console.error('Admin action error:', error);
+            this.showToast('Action failed');
         }
     },
 
