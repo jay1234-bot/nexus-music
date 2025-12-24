@@ -445,6 +445,12 @@ const app = {
         document.getElementById('user-avatar').textContent = this.data.user.name[0].toUpperCase();
         document.getElementById('user-badge').textContent = this.data.user.isPremium ? 'Premium' : 'Free';
 
+        // Update Header Profile
+        const headerUsername = document.getElementById('header-username');
+        const headerAvatar = document.getElementById('header-avatar');
+        if (headerUsername) headerUsername.textContent = this.data.user.name;
+        if (headerAvatar) headerAvatar.textContent = this.data.user.name[0].toUpperCase();
+
         const adminLink = document.getElementById('admin-link');
         if (this.data.user.isAdmin) {
             adminLink.classList.remove('hidden');
@@ -452,17 +458,19 @@ const app = {
             adminLink.classList.add('hidden');
         }
 
-        const premiumBtn = document.getElementById('premium-btn');
-        if (this.data.user.isPremium) {
-            premiumBtn.classList.add('hidden');
-        } else {
-            premiumBtn.classList.remove('hidden');
-            if (this.data.user.trialRequest === 'pending') {
-                premiumBtn.innerHTML = '<i class="fas fa-clock"></i> Pending';
-                premiumBtn.disabled = true;
+        const sidebarPremiumBtn = document.getElementById('sidebar-premium-btn');
+        if (sidebarPremiumBtn) {
+            if (this.data.user.isPremium) {
+                sidebarPremiumBtn.classList.add('hidden');
             } else {
-                premiumBtn.innerHTML = '<i class="fas fa-crown"></i> Go Premium';
-                premiumBtn.disabled = false;
+                sidebarPremiumBtn.classList.remove('hidden');
+                if (this.data.user.trialRequest === 'pending') {
+                    sidebarPremiumBtn.innerHTML = '<i class="fas fa-clock"></i> <span>Pending</span>';
+                    sidebarPremiumBtn.onclick = null;
+                } else {
+                    sidebarPremiumBtn.innerHTML = '<i class="fas fa-crown"></i> <span>Go Premium</span>';
+                    sidebarPremiumBtn.onclick = () => app.requestPremium();
+                }
             }
         }
     },
@@ -471,9 +479,62 @@ const app = {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(`page-${page}`).classList.add('active');
 
+        // Close sidebar on mobile/when navigating if needed, or update active state
+        document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+            link.classList.toggle('active', link.dataset.page === page);
+        });
+
         if (page === 'admin') {
             this.loadAdmin();
         }
+    },
+
+    toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('collapsed');
+        // Optional: Save preference
+    },
+
+    toggleExtendedPlayer() {
+        const player = document.getElementById('extended-player');
+        if (player.classList.contains('hidden')) {
+            player.classList.remove('hidden');
+            this.updateExtendedPlayer(); // Sync initial state
+        } else {
+            player.classList.add('hidden');
+        }
+    },
+
+    updateExtendedPlayer() {
+        if (!this.data.currentTrack) return;
+
+        const song = this.data.currentTrack;
+        const player = document.getElementById('extended-player');
+        if (player.classList.contains('hidden')) return;
+
+        // Update Text
+        document.getElementById('extended-title').textContent = song.name || song.title || 'Unknown';
+        document.getElementById('extended-artist').textContent = this.getArtistName(song);
+
+        // Update Image
+        const imgUrl = this.getImageUrl(song, '500x500');
+        document.getElementById('extended-img').src = imgUrl;
+        document.getElementById('extended-bg').style.backgroundImage = `url('${imgUrl}')`;
+
+        // Update Icons
+        const playBtn = document.getElementById('extended-play-btn');
+        playBtn.innerHTML = this.data.isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+
+        const likeBtn = document.getElementById('extended-like-btn');
+        const isLiked = this.data.library.some(s => (s.id && song.id && s.id === song.id) || (s.name === song.name));
+        likeBtn.innerHTML = isLiked ? '<i class="fas fa-heart" style="color:red"></i>' : '<i class="far fa-heart"></i>';
+
+        // Update Shuffle/Repeat active states
+        document.getElementById('extended-shuffle-btn').classList.toggle('active', this.data.shuffle);
+
+        const repeatBtn = document.getElementById('extended-repeat-btn');
+        repeatBtn.classList.toggle('active', this.data.repeatMode !== 'off');
+        repeatBtn.innerHTML = this.data.repeatMode === 'one' ? '<i class="fas fa-redo-alt"></i>' : '<i class="fas fa-redo"></i>';
     },
 
     // ===== API INTEGRATION =====
@@ -890,6 +951,7 @@ const app = {
     updatePlayState(playing) {
         this.data.isPlaying = playing;
         this.els.playIcon.className = playing ? 'fas fa-pause' : 'fas fa-play';
+        this.updateExtendedPlayer(); // Sync extended player
     },
 
     skipPrevious() {
@@ -943,12 +1005,24 @@ const app = {
         this.els.progressFilled.style.width = `${percent}%`;
         this.els.progressHandle.style.left = `${percent}%`;
         this.els.timeCurrent.textContent = this.formatTime(current);
+
+        // Update Extended Player Progress
+        const extendedProgressFilled = document.getElementById('extended-progress-filled');
+        const extendedProgressHandle = document.getElementById('extended-progress-handle');
+        const extendedTimeCurrent = document.getElementById('extended-time-current');
+
+        if (extendedProgressFilled) extendedProgressFilled.style.width = `${percent}%`;
+        if (extendedProgressHandle) extendedProgressHandle.style.left = `${percent}%`;
+        if (extendedTimeCurrent) extendedTimeCurrent.textContent = this.formatTime(current);
     },
 
     updateDuration() {
         const duration = this.els.audio.duration;
         if (!isNaN(duration)) {
-            this.els.timeTotal.textContent = this.formatTime(duration);
+            const timeStr = this.formatTime(duration);
+            this.els.timeTotal.textContent = timeStr;
+            const extendedTimeTotal = document.getElementById('extended-time-total');
+            if (extendedTimeTotal) extendedTimeTotal.textContent = timeStr;
         }
     },
 
