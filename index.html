@@ -1,13 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus Music | Premium Streaming</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
+
 <body>
     <!-- Auth Overlay -->
     <div id="auth-overlay" class="auth-overlay">
@@ -22,7 +25,8 @@
                     <input type="email" id="login-email" class="auth-input" placeholder="Email" value="user@demo.com">
                     <input type="password" id="login-pass" class="auth-input" placeholder="Password" value="123456">
                     <button class="auth-btn" onclick="app.login()">Sign In</button>
-                    <p class="auth-switch">Don't have an account? <span onclick="app.switchAuth('signup')">Sign Up</span></p>
+                    <p class="auth-switch">Don't have an account? <span onclick="app.switchAuth('signup')">Sign
+                            Up</span></p>
                 </div>
             </div>
             <div class="auth-box hidden" id="signup-box">
@@ -36,7 +40,8 @@
                     <input type="email" id="signup-email" class="auth-input" placeholder="Email">
                     <input type="password" id="signup-pass" class="auth-input" placeholder="Password">
                     <button class="auth-btn" onclick="app.signup()">Create Account</button>
-                    <p class="auth-switch">Already have an account? <span onclick="app.switchAuth('login')">Sign In</span></p>
+                    <p class="auth-switch">Already have an account? <span onclick="app.switchAuth('login')">Sign
+                            In</span></p>
                 </div>
             </div>
         </div>
@@ -51,6 +56,9 @@
                     <i class="fas fa-compact-disc"></i>
                     <span>Nexus</span>
                 </div>
+                <button class="icon-btn sidebar-toggle-btn" onclick="app.toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-link active" data-page="home">
@@ -73,6 +81,11 @@
                     <i class="fas fa-shield-alt"></i>
                     <span>Admin</span>
                 </a>
+                <div class="nav-divider"></div>
+                <a href="#" class="nav-link premium-link" id="sidebar-premium-btn" onclick="app.requestPremium()">
+                    <i class="fas fa-crown"></i>
+                    <span>Go Premium</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="user-profile">
@@ -94,12 +107,14 @@
             <header class="main-header">
                 <div class="header-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="search-input" placeholder="Search for songs, artists, albums..." onkeydown="if(event.key==='Enter') app.search(this.value)">
+                    <input type="text" id="search-input" placeholder="Search for songs, artists, albums..."
+                        onkeydown="if(event.key==='Enter') app.search(this.value)">
                 </div>
                 <div class="header-actions">
-                    <button class="premium-btn" id="premium-btn" onclick="app.requestPremium()">
-                        <i class="fas fa-crown"></i> Go Premium
-                    </button>
+                    <div class="header-user-profile" id="header-user-profile">
+                        <div class="header-avatar" id="header-avatar"></div>
+                        <span class="header-username" id="header-username"></span>
+                    </div>
                     <div class="header-settings">
                         <button class="icon-btn" onclick="app.toggleSettings()">
                             <i class="fas fa-cog"></i>
@@ -459,6 +474,67 @@
         </div>
     </div>
 
+    <!-- Extended Player Overlay -->
+    <div id="extended-player" class="extended-player hidden">
+        <div class="extended-background" id="extended-bg"></div>
+        <div class="extended-content">
+            <div class="extended-header">
+                <button class="icon-btn" onclick="app.toggleExtendedPlayer()">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <span>Now Playing</span>
+                <button class="icon-btn" onclick="app.toggleQueue()">
+                    <i class="fas fa-list"></i>
+                </button>
+            </div>
+
+            <div class="extended-artwork-container">
+                <div class="extended-artwork">
+                    <img src="" id="extended-img" alt="">
+                </div>
+            </div>
+
+            <div class="extended-info">
+                <div class="extended-text">
+                    <h2 id="extended-title">Song Title</h2>
+                    <p id="extended-artist">Artist Name</p>
+                </div>
+                <button class="icon-btn" id="extended-like-btn" onclick="app.toggleLike()">
+                    <i class="far fa-heart"></i>
+                </button>
+            </div>
+
+            <div class="extended-progress">
+                <div class="progress-bar extended-progress-bar" id="extended-progress-bar">
+                    <div class="progress-filled" id="extended-progress-filled"></div>
+                    <div class="progress-handle" id="extended-progress-handle"></div>
+                </div>
+                <div class="time-labels">
+                    <span id="extended-time-current">0:00</span>
+                    <span id="extended-time-total">0:00</span>
+                </div>
+            </div>
+
+            <div class="extended-controls">
+                <button class="control-btn" onclick="app.setShuffle()" id="extended-shuffle-btn">
+                    <i class="fas fa-random"></i>
+                </button>
+                <button class="control-btn medium" onclick="app.skipPrevious()">
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button class="play-pause-btn large" onclick="app.togglePlay()" id="extended-play-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn medium" onclick="app.skipNext()">
+                    <i class="fas fa-step-forward"></i>
+                </button>
+                <button class="control-btn" onclick="app.setRepeatMode()" id="extended-repeat-btn">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Audio Element -->
     <audio id="audio-element" crossorigin="anonymous" preload="auto"></audio>
 
@@ -472,5 +548,5 @@
 
     <script src="script.js"></script>
 </body>
-</html>
 
+</html>
