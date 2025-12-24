@@ -2149,25 +2149,28 @@ body {
 }
 
 .extended-player.queue-active .extended-content {
-    width: calc(100% - 380px);
-    /* Adjust width to match queue panel width */
+    flex: 1;
+    /* Take all available space on left */
+    width: auto;
     max-width: none;
     margin: 0;
-    padding: 0 40px;
-    /* Side padding only here */
+    padding: 24px 40px;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
+    /* Center content vertically */
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    height: 100vh;
-    overflow-y: overlay;
-    /* Better scrollbar behavior if supported */
+    gap: 16px;
+    /* Tight gap for better fit */
+    height: 100%;
     overflow-y: auto;
-    padding-top: 15vh;
-    /* Increase top padding significantly to clear header */
-    padding-bottom: 150px;
-    /* Ensure bottom controls are never cut */
+    scrollbar-width: none;
+    /* Hide scrollbar Firefox */
+}
+
+.extended-player.queue-active .extended-content::-webkit-scrollbar {
+    display: none;
+    /* Hide scrollbar Chrome/Safari */
 }
 
 /* Hide scrollbar for cleaner look */
@@ -2177,50 +2180,48 @@ body {
 
 /* Specific spacing for active queue state */
 .extended-player.queue-active .extended-artwork {
-    flex-shrink: 0;
-    /* Don't shrink image */
-    margin-top: 0;
-    margin-bottom: 24px;
-    max-width: 340px;
-    /* Slightly larger image space */
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
-    /* Premium shadow */
+    flex-shrink: 1;
+    /* Allow it to scale down on small screens */
+    margin: 0 0 12px 0;
+    max-width: 320px;
+    max-height: 40vh;
+    /* Responsive height limit */
+    aspect-ratio: 1;
+    object-fit: contain;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    border-radius: 20px;
+    overflow: hidden;
 }
 
 .extended-player.queue-active .track-info {
     flex-shrink: 0;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     width: 100%;
 }
 
 .extended-player.queue-active .progress-container {
     flex-shrink: 0;
     width: 100%;
-    margin: 20px 0 50px 0;
-    /* Significant space below seekbar */
+    margin: 8px 0 20px 0;
+    /* Clear spacing for seekbar */
 }
 
 .extended-player.queue-active .extended-controls {
     flex-shrink: 0;
-    margin-bottom: 20px;
-    /* Add some bottom spacing */
-    gap: 40px;
-    /* Even more space between buttons */
+    margin-bottom: 0;
+    gap: 32px;
     width: 100%;
     justify-content: center;
-    padding-bottom: 20px;
 }
 
 .extended-queue-panel {
-    position: absolute;
-    top: 50%;
-    right: 32px;
-    transform: translateY(-50%) translateX(20px);
+    position: relative;
+    /* Changed from absolute for better grid/flex control */
+    margin: 20px 32px 20px 0;
     width: 380px;
-    /* Slightly narrower */
-    height: 85vh;
-    /* More transparent glass effect as requested */
+    height: calc(100% - 40px);
+    /* Fit within player bounds */
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(30px) saturate(180%);
     -webkit-backdrop-filter: blur(30px) saturate(180%);
@@ -2231,16 +2232,16 @@ body {
     opacity: 0;
     pointer-events: none;
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 2005;
+    z-index: 2;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+    transform: translateX(20px);
 }
 
 .extended-player.queue-active .extended-queue-panel.active {
     opacity: 1;
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(0);
     pointer-events: all;
     display: flex;
-    /* Ensure it's flex */
 }
 
 /* Glass Header */
