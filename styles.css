@@ -938,6 +938,63 @@ body {
     text-overflow: ellipsis;
 }
 
+/* Add to Playlist button on cards */
+.add-playlist-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 5;
+}
+
+.song-card:hover .add-playlist-btn {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.add-playlist-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.1) !important;
+}
+
+/* Delete button for playlists */
+.delete-playlist-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+.song-card:hover .delete-playlist-btn {
+    opacity: 1;
+}
+
+.delete-playlist-btn:hover {
+    background: #F44336;
+    color: white;
+}
+
 .skeleton-card {
     background: var(--dark-surface-light);
     border-radius: 16px;
