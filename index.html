@@ -4,11 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Music | Premium Streaming</title>
+    <title>Nexus Music</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="logo" href="Minimalist and styli.png">
 </head>
 
 <body>
@@ -450,9 +451,15 @@
             <div class="queue-panel" id="queue-panel">
                 <div class="queue-header">
                     <h3>Queue</h3>
-                    <button class="close-btn" onclick="app.toggleQueue()">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div class="queue-actions">
+                        <button class="icon-btn active" id="autoplay-btn" onclick="app.toggleAutoplay()"
+                            title="Autoplay">
+                            <i class="fas fa-infinity"></i>
+                        </button>
+                        <button class="close-btn" onclick="app.toggleQueue()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="queue-list" id="queue-list">
                     <p class="empty-state">Queue is empty</p>
