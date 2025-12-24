@@ -103,15 +103,15 @@ const app = {
 
     setupAudioGraph() {
         if (!audioContext) return;
-        
+
         try {
             sourceNode = audioContext.createMediaElementSource(this.els.audio);
             masterGain = audioContext.createGain();
-            
+
             // Create 10-band equalizer
             const frequencies = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000];
             let lastNode = sourceNode;
-            
+
             frequencies.forEach((freq, i) => {
                 const filter = audioContext.createBiquadFilter();
                 filter.type = 'peaking';
@@ -122,14 +122,22 @@ const app = {
                 lastNode.connect(filter);
                 lastNode = filter;
             });
-            
+
             lastNode.connect(masterGain);
             masterGain.connect(audioContext.destination);
-            
+
             // Update equalizer
             this.updateEqualizer();
         } catch (e) {
             console.warn('Audio graph setup failed:', e);
+        }
+    },
+
+    resumeAudioContext() {
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                console.log('AudioContext resumed successfully');
+            });
         }
     },
 
@@ -324,7 +332,7 @@ const app = {
         const email = document.getElementById('login-email').value;
         const pass = document.getElementById('login-pass').value;
         const user = this.data.users.find(u => u.email === email && u.pass === pass);
-        
+
         if (user) {
             this.data.user = user;
             localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION, JSON.stringify(user));
@@ -341,17 +349,17 @@ const app = {
         const name = document.getElementById('signup-name').value;
         const email = document.getElementById('signup-email').value;
         const pass = document.getElementById('signup-pass').value;
-        
+
         if (!name || !email || !pass) {
             this.showToast('Please fill all fields');
             return;
         }
-        
+
         if (this.data.users.find(u => u.email === email)) {
             this.showToast('Email already exists');
             return;
         }
-        
+
         const user = {
             name,
             email,
@@ -360,7 +368,7 @@ const app = {
             isAdmin: email === CONFIG.ADMIN_EMAIL,
             trialRequest: null
         };
-        
+
         this.data.users.push(user);
         this.saveUsers();
         this.data.user = user;
@@ -382,18 +390,18 @@ const app = {
     // ===== UI UPDATES =====
     updateUI() {
         if (!this.data.user) return;
-        
+
         document.getElementById('user-name').textContent = this.data.user.name;
         document.getElementById('user-avatar').textContent = this.data.user.name[0].toUpperCase();
         document.getElementById('user-badge').textContent = this.data.user.isPremium ? 'Premium' : 'Free';
-        
+
         const adminLink = document.getElementById('admin-link');
         if (this.data.user.isAdmin) {
             adminLink.classList.remove('hidden');
         } else {
             adminLink.classList.add('hidden');
         }
-        
+
         const premiumBtn = document.getElementById('premium-btn');
         if (this.data.user.isPremium) {
             premiumBtn.classList.add('hidden');
@@ -412,7 +420,7 @@ const app = {
     navigate(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(`page-${page}`).classList.add('active');
-        
+
         if (page === 'admin') {
             this.loadAdmin();
         }
@@ -422,7 +430,7 @@ const app = {
     async fetchAPI(endpoint) {
         try {
             const url = `${CONFIG.API_BASE}/${endpoint}`;
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -430,15 +438,15 @@ const app = {
                 },
                 mode: 'cors'
             });
-            
+
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             // Return full response object - let calling function handle nested structure
             return data;
-            
+
         } catch (error) {
             console.error('API Error:', error.message);
             this.showToast('Failed to load content. Please check your connection.');
@@ -449,9 +457,9 @@ const app = {
 
     getImageUrl(song, size = '500x500') {
         if (!song) return '';
-        
+
         let imageUrl = null;
-        
+
         // API format: image array with [{quality: "500x500", url: "..."}, ...]
         if (song.image && Array.isArray(song.image) && song.image.length > 0) {
             // Try to find exact size match first
@@ -468,7 +476,7 @@ const app = {
                     }
                 }
             }
-        } 
+        }
         // Fallback formats
         else if (song.image && typeof song.image === 'string') {
             imageUrl = song.image;
@@ -479,12 +487,12 @@ const app = {
         } else if (song.cover) {
             imageUrl = typeof song.cover === 'string' ? song.cover : song.cover.url;
         }
-        
+
         // Ensure we have a string before processing
         if (!imageUrl || typeof imageUrl !== 'string') {
             return '';
         }
-        
+
         // Process the URL string
         try {
             // Ensure HTTPS
@@ -517,31 +525,31 @@ const app = {
     async getAudioUrl(song, quality = null) {
         const q = quality || this.data.settings.quality;
         let url = null;
-        
+
         console.log('getAudioUrl called for:', song.name || song.title);
         console.log('Song downloadUrl:', song.downloadUrl);
-        
+
         // Quality mapping: "96" -> "96kbps", "160" -> "160kbps", etc.
-        const qualityMap = { 
-            '96': '96kbps', 
-            '128': '128kbps', 
-            '160': '160kbps', 
-            '320': '320kbps' 
+        const qualityMap = {
+            '96': '96kbps',
+            '128': '128kbps',
+            '160': '160kbps',
+            '320': '320kbps'
         };
         const targetQuality = qualityMap[q] || `${q}kbps`;
-        
+
         // Try downloadUrl array (format: [{quality: "96kbps", url: "..."}, ...])
         if (Array.isArray(song.downloadUrl) && song.downloadUrl.length > 0) {
             console.log('Found downloadUrl array with', song.downloadUrl.length, 'items');
             console.log('Looking for quality:', targetQuality);
-            
+
             // Try to find exact quality match
             const qualityMatch = song.downloadUrl.find(d => {
                 if (!d || typeof d !== 'object') return false;
                 const dQuality = d.quality || '';
                 return dQuality === targetQuality || dQuality === q || dQuality === `${q}kbps`;
             });
-            
+
             if (qualityMatch && qualityMatch.url) {
                 url = qualityMatch.url;
                 console.log('Found quality match:', url);
@@ -558,7 +566,7 @@ const app = {
                     }
                 }
             }
-        } 
+        }
         // Try string downloadUrl (fallback)
         else if (typeof song.downloadUrl === 'string') {
             url = song.downloadUrl;
@@ -574,24 +582,24 @@ const app = {
         } else {
             console.warn('No audio URL found in song object. Available keys:', Object.keys(song));
         }
-        
+
         if (url) {
             url = url.replace('http://', 'https://');
             console.log('Final audio URL:', url);
         } else {
             console.error('❌ No audio URL found!');
         }
-        
+
         return url;
     },
 
     async loadHomeContent() {
         // Trending
         this.loadSection('search/songs?query=trending+hindi&limit=10', 'trending-grid');
-        
+
         // New Releases
         this.loadSection('search/songs?query=latest+songs&limit=10', 'newreleases-grid');
-        
+
         // Charts
         this.loadSection('search/songs?query=top+charts&limit=10', 'charts-grid');
     },
@@ -599,13 +607,13 @@ const app = {
     async loadSection(endpoint, gridId) {
         const grid = document.getElementById(gridId);
         grid.innerHTML = '<div class="skeleton-card"></div>'.repeat(4);
-        
+
         const data = await this.fetchAPI(endpoint);
         if (!data) {
             grid.innerHTML = '<p class="empty-state">Failed to load</p>';
             return;
         }
-        
+
         // Handle API response structure: {success: true, data: {results: [...]}}
         let songs = [];
         if (data.data && data.data.results && Array.isArray(data.data.results)) {
@@ -619,28 +627,28 @@ const app = {
         } else if (data.songs && Array.isArray(data.songs)) {
             songs = data.songs;
         }
-        
+
         if (songs.length === 0) {
             grid.innerHTML = '<p class="empty-state">No content found</p>';
             return;
         }
-        
+
         this.renderSongs(songs, gridId);
     },
 
     async search(query) {
         if (!query.trim()) return;
-        
+
         this.navigate('search');
         const grid = document.getElementById('search-grid');
         grid.innerHTML = '<div class="skeleton-card"></div>'.repeat(8);
-        
+
         const data = await this.fetchAPI(`search/songs?query=${encodeURIComponent(query)}&limit=20`);
         if (!data) {
             grid.innerHTML = '<p class="empty-state">No results found</p>';
             return;
         }
-        
+
         // Handle API response structure: {success: true, data: {results: [...]}}
         let songs = [];
         if (data.data && data.data.results && Array.isArray(data.data.results)) {
@@ -654,27 +662,27 @@ const app = {
         } else if (data.songs && Array.isArray(data.songs)) {
             songs = data.songs;
         }
-        
+
         if (songs.length === 0) {
             grid.innerHTML = '<p class="empty-state">No results found</p>';
             return;
         }
-        
+
         this.renderSongs(songs, 'search-grid');
     },
 
     renderSongs(songs, containerId) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
-        
+
         // Log first song to debug (only in development, first time)
         if (songs.length > 0 && !this._debugged && window.location.hostname === 'localhost') {
             console.log('Sample song data:', songs[0]);
             this._debugged = true;
         }
-        
+
         const fallbackImg = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="500"%3E%3Crect fill="%23181818" width="500" height="500"/%3E%3Ctext fill="%23fff" x="50%25" y="50%25" text-anchor="middle" dy=".3em" font-family="Arial" font-size="24"%3EMusic%3C/text%3E%3C/svg%3E';
-        
+
         songs.forEach((song, index) => {
             try {
                 const card = document.createElement('div');
@@ -682,7 +690,7 @@ const app = {
                 const imageUrl = this.getImageUrl(song) || fallbackImg;
                 const songName = (song.name || song.title || 'Unknown').replace(/"/g, '&quot;');
                 const artistName = this.getArtistName(song).replace(/"/g, '&quot;');
-                
+
                 card.innerHTML = `
                     <div class="song-card-image">
                         <img src="${imageUrl}" 
@@ -698,7 +706,7 @@ const app = {
                     <div class="song-card-title">${songName}</div>
                     <div class="song-card-artist">${artistName}</div>
                 `;
-                
+
                 card.addEventListener('click', async () => {
                     this.data.queue = songs;
                     this.data.queueIndex = index;
@@ -708,7 +716,7 @@ const app = {
                     // Reset after a short delay
                     setTimeout(() => { this.userInteractionActive = false; }, 1000);
                 });
-                
+
                 container.appendChild(card);
             } catch (error) {
                 console.error('Error rendering song card:', error, song);
@@ -718,12 +726,13 @@ const app = {
 
     // ===== AUDIO PLAYBACK =====
     async loadTrack(index) {
+        this.resumeAudioContext();
         if (index < 0 || index >= this.data.queue.length) return;
-        
+
         const song = this.data.queue[index];
         this.data.queueIndex = index;
         this.data.currentTrack = song;
-        
+
         // Update UI
         this.els.playerTitle.textContent = song.name || song.title || 'Unknown';
         this.els.playerArtist.textContent = this.getArtistName(song);
@@ -731,43 +740,43 @@ const app = {
         const playerImgUrl = this.getImageUrl(song);
         this.els.playerArtwork.src = playerImgUrl || fallbackImg;
         this.els.playerArtwork.alt = song.name || song.title || 'Music';
-        this.els.playerArtwork.onerror = function() {
+        this.els.playerArtwork.onerror = function () {
             this.onerror = null; // Prevent infinite loop
             this.src = fallbackImg;
         };
-        
+
         // Get audio URL (async)
         const audioUrl = await this.getAudioUrl(song);
         console.log('Audio URL retrieved:', audioUrl);
         console.log('Song object:', song);
-        
+
         if (!audioUrl) {
             console.error('No audio URL found for song:', song);
             this.showToast('Audio not available');
             return;
         }
-        
+
         // Update quality badge
         const quality = this.data.settings.quality;
         this.els.qualityBadge.textContent = `${quality}k`;
         this.els.qualityBadge.classList.toggle('premium', quality === '320' || quality === '160');
-        
+
         // Stop any currently playing audio
         this.els.audio.pause();
         this.els.audio.currentTime = 0;
         this.data.isPlaying = false;
         this.els.playIcon.className = 'fas fa-play';
-        
+
         // Set up audio element
         this.els.audio.crossOrigin = 'anonymous';
         this.els.audio.preload = 'auto';
-        
+
         // Load audio
         this.els.audio.src = audioUrl;
         this.els.audio.load();
-        
+
         console.log('Audio source set, ready to play. User can click play button.');
-        
+
         // Try to auto-play only if we have active user interaction
         // This preserves the user gesture context for autoplay policies
         if (this.userInteractionActive) {
@@ -784,7 +793,7 @@ const app = {
                     this.els.playIcon.className = 'fas fa-play';
                 }
             };
-            
+
             // Try immediately
             tryPlay();
         } else {
@@ -792,20 +801,21 @@ const app = {
             this.data.isPlaying = false;
             this.els.playIcon.className = 'fas fa-play';
         }
-        
+
         // Update queue display
         this.updateQueueDisplay();
-        
+
         // Try to load lyrics
         this.loadLyrics(song);
     },
 
     togglePlay() {
+        this.resumeAudioContext();
         if (!this.data.currentTrack || !this.els.audio.src) {
             this.showToast('No song selected');
             return;
         }
-        
+
         if (this.data.isPlaying) {
             this.els.audio.pause();
             this.data.isPlaying = false;
@@ -843,7 +853,7 @@ const app = {
             this.loadTrack(this.data.queueIndex);
             return;
         }
-        
+
         if (this.data.queueIndex < this.data.queue.length - 1) {
             this.loadTrack(this.data.queueIndex + 1);
         } else if (this.data.repeatMode === 'all') {
@@ -876,9 +886,9 @@ const app = {
     updateProgress() {
         const current = this.els.audio.currentTime;
         const duration = this.els.audio.duration;
-        
+
         if (isNaN(duration)) return;
-        
+
         const percent = (current / duration) * 100;
         this.els.progressFilled.style.width = `${percent}%`;
         this.els.progressHandle.style.left = `${percent}%`;
@@ -899,6 +909,7 @@ const app = {
     },
 
     seek(e) {
+        this.resumeAudioContext();
         const rect = this.els.progressBar.getBoundingClientRect();
         const percent = (e.clientX - rect.left) / rect.width;
         const time = percent * this.els.audio.duration;
@@ -911,6 +922,7 @@ const app = {
 
     // ===== VOLUME CONTROL =====
     setVolume(value) {
+        this.resumeAudioContext();
         this.data.volume = parseInt(value);
         this.els.audio.volume = this.data.volume / 100;
         this.updateVolumeIcon();
@@ -938,9 +950,9 @@ const app = {
         const modes = ['off', 'all', 'one'];
         const currentIndex = modes.indexOf(this.data.repeatMode);
         this.data.repeatMode = modes[(currentIndex + 1) % modes.length];
-        
+
         this.els.repeatBtn.classList.toggle('active', this.data.repeatMode !== 'off');
-        this.els.repeatBtn.querySelector('i').className = 
+        this.els.repeatBtn.querySelector('i').className =
             this.data.repeatMode === 'one' ? 'fas fa-redo' : 'fas fa-redo';
         this.els.repeatBtn.title = `Repeat: ${this.data.repeatMode}`;
     },
@@ -961,22 +973,22 @@ const app = {
             classical: [3, 2, 1, 0, 0, 0, -1, -2, -2, -3],
             bass: [6, 5, 3, 2, 0, -1, -2, -2, -1, 0]
         };
-        
+
         this.data.settings.eqPreset = preset;
         this.data.settings.eqBands = presets[preset] || presets.flat;
-        
+
         // Update sliders
         document.querySelectorAll('.eq-slider').forEach((slider, i) => {
             slider.value = this.data.settings.eqBands[i];
         });
-        
+
         this.updateEqualizer();
         this.saveSettings();
     },
 
     updateEqualizer() {
         if (!filters || filters.length === 0) return;
-        
+
         this.data.settings.eqBands.forEach((gain, i) => {
             if (filters[i]) {
                 filters[i].gain.value = gain;
@@ -987,28 +999,28 @@ const app = {
     // ===== SOUND ENHANCEMENT =====
     applyEnhancements() {
         if (!masterGain) return;
-        
+
         let gainValue = 1;
-        
+
         // Volume boost
         if (this.data.settings.volumeBoost > 0) {
             gainValue += this.data.settings.volumeBoost / 100;
         }
-        
+
         // Bass boost
         if (this.data.settings.bassBoost) {
             const bassGain = this.data.settings.bassLevel / 50;
             if (filters[0]) filters[0].gain.value += bassGain * 3;
             if (filters[1]) filters[1].gain.value += bassGain * 2;
         }
-        
+
         // Treble boost
         if (this.data.settings.trebleLevel !== 50) {
             const trebleGain = (this.data.settings.trebleLevel - 50) / 25;
             if (filters[8]) filters[8].gain.value += trebleGain;
             if (filters[9]) filters[9].gain.value += trebleGain;
         }
-        
+
         masterGain.gain.value = Math.min(gainValue, 2); // Cap at 2x
     },
 
@@ -1028,11 +1040,11 @@ const app = {
     applySettings() {
         // Apply quality
         document.querySelector(`input[name="quality"][value="${this.data.settings.quality}"]`).checked = true;
-        
+
         // Apply EQ preset
         document.querySelector(`.preset-btn[data-preset="${this.data.settings.eqPreset}"]`)?.classList.add('active');
         this.updateEqualizer();
-        
+
         // Apply enhancements
         document.getElementById('bass-boost').checked = this.data.settings.bassBoost;
         document.getElementById('3d-sound').checked = this.data.settings.sound3D;
@@ -1041,16 +1053,16 @@ const app = {
         document.getElementById('bass-level').value = this.data.settings.bassLevel;
         document.getElementById('treble-level').value = this.data.settings.trebleLevel;
         document.getElementById('volume-boost').value = this.data.settings.volumeBoost;
-        
+
         // Apply optimization
         document.getElementById('low-data').checked = this.data.settings.lowDataMode;
         document.getElementById('cache-audio').checked = this.data.settings.cacheAudio;
         document.getElementById('auto-quality').checked = this.data.settings.autoQuality;
-        
+
         // Apply volume
         this.els.volumeSlider.value = this.data.volume;
         this.setVolume(this.data.volume);
-        
+
         this.applyEnhancements();
     },
 
@@ -1064,7 +1076,7 @@ const app = {
             this.els.queueList.innerHTML = '<p class="empty-state">Queue is empty</p>';
             return;
         }
-        
+
         this.els.queueList.innerHTML = '';
         this.data.queue.forEach((song, index) => {
             const item = document.createElement('div');
@@ -1098,7 +1110,7 @@ const app = {
     // ===== LYRICS =====
     async loadLyrics(song) {
         this.els.lyricsContent.innerHTML = '<p class="empty-state">Loading lyrics...</p>';
-        
+
         // Skip lyrics fetching for now to avoid API errors
         // Lyrics can be added later when API endpoint is available
         this.els.lyricsContent.innerHTML = '<p class="empty-state">No lyrics available</p>';
@@ -1126,18 +1138,18 @@ const app = {
             container.innerHTML = '<p class="empty-state">Your library is empty</p>';
             return;
         }
-        
+
         this.renderSongs(this.data.library, 'library-list');
     },
 
     toggleLike() {
         if (!this.data.currentTrack) return;
-        
-        const index = this.data.library.findIndex(s => 
+
+        const index = this.data.library.findIndex(s =>
             (s.id && this.data.currentTrack.id && s.id === this.data.currentTrack.id) ||
             (s.name === this.data.currentTrack.name)
         );
-        
+
         if (index > -1) {
             this.data.library.splice(index, 1);
             this.els.likeBtn.querySelector('i').className = 'far fa-heart';
@@ -1147,7 +1159,7 @@ const app = {
             this.els.likeBtn.querySelector('i').className = 'fas fa-heart';
             this.showToast('Added to library');
         }
-        
+
         localStorage.setItem(CONFIG.STORAGE_KEYS.LIBRARY, JSON.stringify(this.data.library));
     },
 
@@ -1166,7 +1178,7 @@ const app = {
             container.innerHTML = '<p class="empty-state">No playlists yet</p>';
             return;
         }
-        
+
         // Render playlists
     },
 
@@ -1187,7 +1199,7 @@ const app = {
     // ===== PREMIUM =====
     requestPremium() {
         if (!this.data.user) return;
-        
+
         const userIndex = this.data.users.findIndex(u => u.email === this.data.user.email);
         if (userIndex > -1) {
             this.data.users[userIndex].trialRequest = 'pending';
@@ -1201,21 +1213,21 @@ const app = {
     // ===== ADMIN =====
     loadAdmin() {
         if (!this.data.user?.isAdmin) return;
-        
+
         const pending = this.data.users.filter(u => u.trialRequest === 'pending');
         const premium = this.data.users.filter(u => u.isPremium);
-        
+
         document.getElementById('admin-pending').textContent = pending.length;
         document.getElementById('admin-premium').textContent = premium.length;
-        
+
         const tbody = document.getElementById('admin-tbody');
         tbody.innerHTML = '';
-        
+
         if (pending.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">No pending requests</td></tr>';
             return;
         }
-        
+
         pending.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
