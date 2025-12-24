@@ -27,6 +27,50 @@
     box-sizing: border-box;
 }
 
+/* ===== APP LOADING ===== */
+.app-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--dark-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+    transition: opacity 0.5s ease, visibility 0.5s;
+}
+
+.loader-content {
+    text-align: center;
+    color: white;
+}
+
+.loader-content i {
+    font-size: 64px;
+    margin-bottom: 24px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    animation: fa-spin 2s linear infinite;
+}
+
+.loader-text {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.loader-subtext {
+    font-size: 14px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
 body {
     font-family: 'Poppins', sans-serif;
     background: var(--dark-bg);
@@ -661,6 +705,8 @@ body {
     gap: 24px;
     background: rgba(20, 27, 45, 0.8);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background-clip: padding-box;
     border-bottom: 1px solid var(--dark-border);
     z-index: 100;
     position: sticky;
