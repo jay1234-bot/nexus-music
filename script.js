@@ -533,6 +533,12 @@ const app = {
 
         if (page === 'admin') {
             this.loadAdmin();
+        } else if (page === 'library') {
+            const title = document.querySelector('#page-library .section-title');
+            if (title) title.textContent = 'Your Library'; // Reset if it was changed by openPlaylist
+            this.renderLibrary();
+        } else if (page === 'playlists') {
+            this.renderPlaylists();
         }
     },
 
@@ -582,6 +588,9 @@ const app = {
         const repeatBtn = document.getElementById('extended-repeat-btn');
         repeatBtn.classList.toggle('active', this.data.repeatMode !== 'off');
         repeatBtn.innerHTML = this.data.repeatMode === 'one' ? '<i class="fas fa-redo-alt"></i>' : '<i class="fas fa-redo"></i>';
+
+        // Sync Like Icon
+        this.updateLikeIcons();
     },
 
     // ===== API INTEGRATION =====
@@ -883,10 +892,16 @@ const app = {
                                 <i class="fas fa-play"></i>
                             </div>
                         </div>
+                        <button class="add-playlist-btn" onclick="event.stopPropagation(); app.showPlaylistSelector('${song.id || index}')" title="Add to Playlist">
+                            <i class="fas fa-plus"></i>
+                        </button>
                     </div>
                     <div class="song-card-title">${songName}</div>
                     <div class="song-card-artist">${artistName}</div>
                 `;
+
+                // Store song data for selector retrieval
+                card.dataset.songData = JSON.stringify(song);
 
                 card.addEventListener('click', async () => {
                     this.data.queue = songs;
@@ -978,6 +993,9 @@ const app = {
 
         // Update queue display
         this.updateQueueDisplay();
+
+        // Sync Like icons
+        this.updateLikeIcons();
 
         // Try to load lyrics
         this.loadLyrics(song);
@@ -1465,22 +1483,56 @@ const app = {
     toggleLike() {
         if (!this.data.currentTrack) return;
 
+        const song = this.data.currentTrack;
         const index = this.data.library.findIndex(s =>
-            (s.id && this.data.currentTrack.id && s.id === this.data.currentTrack.id) ||
-            (s.name === this.data.currentTrack.name)
+            (s.id && song.id && s.id === song.id) ||
+            (s.name === song.name && this.getArtistName(s) === this.getArtistName(song))
         );
 
         if (index > -1) {
             this.data.library.splice(index, 1);
-            this.els.likeBtn.querySelector('i').className = 'far fa-heart';
             this.showToast('Removed from library');
         } else {
-            this.data.library.push(this.data.currentTrack);
-            this.els.likeBtn.querySelector('i').className = 'fas fa-heart';
+            this.data.library.push(song);
             this.showToast('Added to library');
         }
 
+        // Save to localStorage
         localStorage.setItem(CONFIG.STORAGE_KEYS.LIBRARY, JSON.stringify(this.data.library));
+
+        // Sync Icons in all places
+        this.updateLikeIcons();
+
+        // Refresh library page if currently active
+        if (document.getElementById('page-library').classList.contains('active')) {
+            this.renderLibrary();
+        }
+    },
+
+    updateLikeIcons() {
+        if (!this.data.currentTrack) return;
+
+        const song = this.data.currentTrack;
+        const isLiked = this.data.library.some(s =>
+            (s.id && song.id && s.id === song.id) ||
+            (s.name === song.name && this.getArtistName(s) === this.getArtistName(song))
+        );
+
+        // Update Mini Player Heart
+        const miniLikeBtn = document.getElementById('like-btn');
+        if (miniLikeBtn) {
+            const icon = miniLikeBtn.querySelector('i');
+            icon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+            icon.style.color = isLiked ? 'var(--primary)' : '';
+        }
+
+        // Update Extended Player Heart
+        const extendedLikeBtn = document.getElementById('extended-like-btn');
+        if (extendedLikeBtn) {
+            const icon = extendedLikeBtn.querySelector('i');
+            icon.className = isLiked ? 'fas fa-heart' : 'far fa-heart';
+            icon.style.color = isLiked ? 'var(--primary)' : '';
+        }
     },
 
     // ===== PLAYLISTS =====
@@ -1494,26 +1546,104 @@ const app = {
 
     renderPlaylists() {
         const container = document.getElementById('playlists-grid');
+        if (!container) return;
+
         if (this.data.playlists.length === 0) {
-            container.innerHTML = '<p class="empty-state">No playlists yet</p>';
+            container.innerHTML = '<p class="empty-state">No playlists yet. Create one to get started!</p>';
             return;
         }
 
-        // Render playlists
+        container.innerHTML = '';
+        this.data.playlists.forEach(playlist => {
+            const card = document.createElement('div');
+            card.className = 'song-card'; // Reuse card styling
+
+            // Generate a simple mosaic or fallback for playlist cover
+            const coverImg = playlist.songs.length > 0 ? this.getImageUrl(playlist.songs[0], '300x300') : 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop';
+
+            card.innerHTML = `
+                <div class="song-card-image">
+                    <img src="${coverImg}" loading="lazy" alt="${playlist.name}">
+                    <div class="play-overlay">
+                        <div class="play-btn-overlay" onclick="event.stopPropagation(); app.playPlaylist(${playlist.id})">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="song-card-title">${playlist.name}</div>
+                <div class="song-card-artist">${playlist.songs.length} Songs</div>
+                <button class="icon-btn delete-playlist-btn" onclick="event.stopPropagation(); app.deletePlaylist(${playlist.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+
+            card.onclick = () => this.openPlaylist(playlist.id);
+            container.appendChild(card);
+        });
     },
 
     createPlaylist() {
-        const name = prompt('Playlist name:');
-        if (name) {
-            this.data.playlists.push({ id: Date.now(), name, songs: [] });
+        const name = prompt('Enter playlist name:');
+        if (name && name.trim()) {
+            const newPlaylist = {
+                id: Date.now(),
+                name: name.trim(),
+                songs: [],
+                createdAt: new Date().toISOString()
+            };
+            this.data.playlists.push(newPlaylist);
             this.savePlaylists();
             this.renderPlaylists();
-            this.showToast('Playlist created');
+            this.showToast(`Playlist "${name}" created`);
+        }
+    },
+
+    deletePlaylist(id) {
+        if (confirm('Are you sure you want to delete this playlist?')) {
+            const index = this.data.playlists.findIndex(p => p.id === id);
+            if (index > -1) {
+                this.data.playlists.splice(index, 1);
+                this.savePlaylists();
+                this.renderPlaylists();
+                this.showToast('Playlist deleted');
+            }
         }
     },
 
     savePlaylists() {
         localStorage.setItem(CONFIG.STORAGE_KEYS.PLAYLISTS, JSON.stringify(this.data.playlists));
+    },
+
+    openPlaylist(id) {
+        const playlist = this.data.playlists.find(p => p.id === id);
+        if (!playlist) return;
+
+        // For now, let's just use the search grid area or a dedicated detail view
+        // Ideally we need a 'playlist-detail' page, but we can repurpose 'search' temporarily or just render into library area
+        const container = document.getElementById('library-list');
+        this.navigate('library'); // Take user to a list view
+
+        const title = document.querySelector('#page-library .section-title');
+        title.textContent = `Playlist: ${playlist.name}`;
+
+        if (playlist.songs.length === 0) {
+            container.innerHTML = '<p class="empty-state">This playlist is empty. Add some songs!</p>';
+            return;
+        }
+
+        this.renderSongs(playlist.songs, 'library-list');
+    },
+
+    playPlaylist(id) {
+        const playlist = this.data.playlists.find(p => p.id === id);
+        if (playlist && playlist.songs.length > 0) {
+            this.data.queue = [...playlist.songs];
+            this.data.queueIndex = 0;
+            this.loadTrack(0);
+            this.showToast(`Playing playlist: ${playlist.name}`);
+        } else {
+            this.showToast('Playlist is empty');
+        }
     },
 
     // ===== PREMIUM =====
@@ -1574,6 +1704,52 @@ const app = {
         } catch (error) {
             console.error('Admin load error:', error);
             this.showToast('Failed to load admin dashboard');
+        }
+    },
+
+    showPlaylistSelector(songId) {
+        if (this.data.playlists.length === 0) {
+            this.showToast('Please create a playlist first');
+            this.navigate('playlists');
+            return;
+        }
+
+        // Find song data from elements
+        let song = null;
+        const cards = document.querySelectorAll('.song-card');
+        for (const card of cards) {
+            try {
+                const data = JSON.parse(card.dataset.songData);
+                if ((data.id && data.id == songId) || (card.dataset.songId == songId)) {
+                    song = data;
+                    break;
+                }
+            } catch (e) { }
+        }
+
+        if (!song && this.data.currentTrack && (this.data.currentTrack.id == songId)) {
+            song = this.data.currentTrack;
+        }
+
+        if (!song) {
+            this.showToast('Unable to identify song');
+            return;
+        }
+
+        const options = this.data.playlists.map((p, i) => `${i + 1}. ${p.name}`).join('\n');
+        const choice = prompt(`Add "${song.name || song.title}" to:\n${options}\n(Enter number)`);
+
+        const index = parseInt(choice) - 1;
+        if (this.data.playlists[index]) {
+            const playlist = this.data.playlists[index];
+            // Prevent duplicates
+            if (!playlist.songs.find(s => s.id === song.id)) {
+                playlist.songs.push(song);
+                this.savePlaylists();
+                this.showToast(`Added to "${playlist.name}"`);
+            } else {
+                this.showToast('Already in playlist');
+            }
         }
     },
 
