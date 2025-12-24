@@ -422,6 +422,11 @@ const app = {
             const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
             const user = userCredential.user;
 
+            // Update Auth Profile (Critical for fallback if Firestore fails)
+            await user.updateProfile({
+                displayName: name
+            });
+
             // Create User Profile in Firestore
             await db.collection('users').doc(user.uid).set({
                 name: name,
