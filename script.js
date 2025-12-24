@@ -1284,6 +1284,8 @@ const app = {
     updateQueueDisplay() {
         if (!this.data.queue || this.data.queue.length === 0) {
             this.els.queueList.innerHTML = '<p class="empty-state">Queue is empty</p>';
+            // Update Extended Queue too if open
+            this.updateExtendedQueueUI();
             return;
         }
 
@@ -1303,6 +1305,9 @@ const app = {
             item.addEventListener('click', () => this.loadTrack(index));
             this.els.queueList.appendChild(item);
         });
+
+        // Key update: Sync the extended queue whenever main queue updates
+        this.updateExtendedQueueUI();
     },
 
     updateQueueUI() {
@@ -1345,6 +1350,64 @@ const app = {
     addToQueue() {
         // Implementation for adding to queue
         this.showToast('Added to queue');
+    },
+
+    toggleExtendedQueue() {
+        const player = document.getElementById('extended-player');
+        const queuePanel = document.getElementById('extended-queue-panel');
+
+        player.classList.toggle('queue-active');
+        queuePanel.classList.toggle('active');
+
+        if (queuePanel.classList.contains('active')) {
+            queuePanel.classList.remove('hidden');
+            this.updateExtendedQueueUI();
+        } else {
+            // Delay hiding for transition
+            setTimeout(() => {
+                if (!queuePanel.classList.contains('active')) {
+                    queuePanel.classList.add('hidden');
+                }
+            }, 400);
+        }
+    },
+
+    updateExtendedQueueUI() {
+        const container = document.getElementById('extended-queue-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+        if (this.data.queue.length === 0) {
+            container.innerHTML = '<p class="empty-state" style="color: rgba(255,255,255,0.5)">Queue is empty</p>';
+            return;
+        }
+
+        this.data.queue.forEach((song, index) => {
+            const div = document.createElement('div');
+            div.className = `queue-item ${index === this.data.queueIndex ? 'active' : ''}`;
+            div.onclick = () => this.loadTrack(index);
+
+            // Reusing basic structure but styled for extended view
+            div.innerHTML = `
+                <div class="queue-item-image">
+                    <img src="${this.getImageUrl(song, '100x100')}" loading="lazy" alt="">
+                </div>
+                <div class="queue-item-info">
+                    <div class="queue-item-title">${song.name || song.title}</div>
+                    <div class="queue-item-artist">${this.getArtistName(song)}</div>
+                </div>
+                ${index === this.data.queueIndex ? '<i class="fas fa-volume-up" style="color:var(--primary)"></i>' : ''}
+            `;
+            container.appendChild(div);
+        });
+
+        // Scroll to active item
+        const activeItem = container.querySelector('.active');
+        if (activeItem) {
+            setTimeout(() => {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
     },
 
     toggleAutoplay() {
