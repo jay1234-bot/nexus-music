@@ -1504,35 +1504,40 @@ const app = {
         const title = song.name || song.title;
         const artist = this.getArtistName(song);
 
-        // Clean title for better matching (remove brackets, etc)
-        const cleanTitle = title.replace(/\(.*\)|\[.*\]/g, '').trim();
+        // Smarter cleaning: remove feat, official, brackets, etc.
+        let cleanTitle = title.replace(/\(feat\..*\)|\(with.*\)|\[.*\]|\(Official.*\)/gi, '').trim();
+        // Remove common suffixes that confuse search
+        cleanTitle = cleanTitle.replace(/official video|lyric video|original mix/gi, '').trim();
+
         const query = encodeURIComponent(cleanTitle);
 
-        console.log('Fetching lyrics for:', cleanTitle);
+        console.log('Fetching lyrics for:', cleanTitle, '| Query:', query);
 
         this.els.lyricsContent.innerHTML = `
             <div class="lyrics-empty">
                 <i class="fas fa-circle-notch fa-spin"></i>
-                <p>Summoning lyrics for<br><strong>${cleanTitle}</strong>...</p>
+                <p>Summoning lyrics for<br><span style="color: var(--primary); font-weight: 800;">${cleanTitle}</span>...</p>
             </div>
         `;
 
         try {
-            // Using a more reliable proxy and title-only for better hit rate
             const apiUrl = `https://lyrics.lewdhutao.my.eu.org/v2/youtube/lyrics?title=${query}`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
 
             const response = await fetch(proxyUrl);
 
-            if (!response.ok) throw new Error('Proxy or API Error');
+            if (!response.ok) throw new Error(`Fetch Error: ${response.status}`);
 
             const data = await response.json();
+            console.log('Lyrics API Data:', data);
 
-            if (data && data.lyrics) {
+            // Flexible structure check
+            const lyricsText = data.lyrics || (data.data && data.data.lyrics) || data.text || (typeof data === 'string' ? data : null);
+
+            if (lyricsText) {
                 let lyricsHtml = '';
-                const lyricsText = data.lyrics;
 
-                // Better line parsing
+                // Better line parsing handles strings and arrays
                 const lines = typeof lyricsText === 'string' ? lyricsText.split('\n') : (Array.isArray(lyricsText) ? lyricsText : []);
 
                 if (lines.length > 0) {
@@ -1542,21 +1547,30 @@ const app = {
                         return `<div class="lyrics-line">${trimmed}</div>`;
                     }).join('');
 
-                    this.els.lyricsContent.innerHTML = lyricsHtml;
+                    this.els.lyricsContent.innerHTML = `
+                        <div style="margin-bottom: 40px; opacity: 0.5; font-size: 16px;">
+                            ${artist} - ${title}
+                        </div>
+                        ${lyricsHtml}
+                        <div style="height: 100px;"></div> <!-- Final padding -->
+                    `;
                     this.els.lyricsContent.scrollTop = 0;
                 } else {
-                    throw new Error('No lines found');
+                    throw new Error('Empty lines found in lyrics');
                 }
             } else {
-                throw new Error('No lyrics in response');
+                console.warn('API returned unexpected structure or no lyrics:', data);
+                throw new Error('No lyrics found in response');
             }
         } catch (error) {
             console.error('Lyrics Fetch Error:', error);
             this.els.lyricsContent.innerHTML = `
                 <div class="lyrics-empty">
-                    <i class="fas fa-microphone-slash"></i>
-                    <p>No lyrics found for<br><strong>${cleanTitle}</strong></p>
-                    <span style="font-size: 14px; opacity: 0.6;">Check back later!</span>
+                    <i class="fas fa-microphone-slash" style="opacity: 0.5;"></i>
+                    <p style="margin-top: 10px;">We couldn't find lyrics for<br><strong style="color: #fff;">${cleanTitle}</strong></p>
+                    <button class="btn btn-primary" style="margin-top: 20px; font-size: 14px; padding: 10px 20px; border-radius: 20px;" onclick="app.loadLyrics(app.data.currentTrack)">
+                        <i class="fas fa-sync-alt"></i> Try Again
+                    </button>
                 </div>
             `;
         }
