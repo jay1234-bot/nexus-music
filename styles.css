@@ -1099,25 +1099,37 @@ body {
 /* ===== AUDIO PLAYER ===== */
 .audio-player {
     position: fixed;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     width: 95%;
-    max-width: 1200px;
-    background: rgba(10, 14, 39, 0.85);
-    backdrop-filter: blur(25px) saturate(180%);
-    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    max-width: 800px;
+    /* Even smaller and more centered */
+    height: 80px;
+    /* Compact height */
+    background: rgba(10, 14, 30, 0.85);
+    /* Slightly darker */
+    backdrop-filter: blur(35px) saturate(210%);
+    -webkit-backdrop-filter: blur(35px) saturate(210%);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    z-index: 1000;
-    height: 100px;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border-radius: 40px;
+    z-index: 4000;
+    transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .audio-player:hover {
-    background: rgba(15, 20, 50, 0.9);
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateX(-50%) translateY(-5px);
+    background: rgba(15, 20, 45, 0.95);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7),
+        0 0 20px rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.2);
+}
+
+.audio-player.playing {
+    /* I will add this class in JS */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(255, 107, 107, 0.15);
 }
 
 .player-main {
@@ -1125,26 +1137,33 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 24px;
+    padding: 0 35px;
+    /* More breathing room */
     gap: 24px;
 }
 
 .player-track {
     display: flex;
     align-items: center;
-    gap: 16px;
-    flex: 0 0 30%;
+    gap: 12px;
+    flex: 0 0 35%;
     min-width: 0;
 }
 
 .track-artwork {
     position: relative;
-    width: 64px;
-    height: 64px;
-    border-radius: 8px;
+    width: 54px;
+    /* Slightly smaller */
+    height: 54px;
+    border-radius: 12px;
     overflow: hidden;
-    background: var(--dark-surface-light);
+    background: rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
+    transition: transform 0.3s;
+}
+
+.track-artwork:hover {
+    transform: scale(1.05);
 }
 
 .track-artwork img {
@@ -1268,8 +1287,9 @@ body {
 }
 
 .control-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary);
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.1);
 }
 
 .control-btn.active {
@@ -1774,19 +1794,21 @@ body {
 .queue-panel,
 .lyrics-panel {
     position: fixed;
-    bottom: 90px;
-    right: 0;
-    width: 400px;
-    max-height: calc(100vh - 90px);
-    background: var(--dark-surface);
-    border-left: 1px solid var(--dark-border);
-    border-top: 1px solid var(--dark-border);
-    z-index: 1500;
+    bottom: 125px;
+    right: 20px;
+    width: 360px;
+    max-height: calc(100vh - 160px);
+    background: rgba(12, 15, 30, 0.98);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    z-index: 5000;
     display: flex;
     flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.3);
+    transform: translateX(120%);
+    /* More distance to hide completely */
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
 }
 
 .queue-panel.active,
