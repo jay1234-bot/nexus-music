@@ -614,11 +614,13 @@ const app = {
 
     toggleExtendedPlayer() {
         const player = document.getElementById('extended-player');
-        if (player.classList.contains('hidden')) {
-            player.classList.remove('hidden');
+        if (!player) return;
+
+        const isHidden = player.classList.toggle('hidden');
+        document.body.classList.toggle('extended-player-active', !isHidden);
+
+        if (!isHidden) {
             this.updateExtendedPlayer(); // Sync initial state
-        } else {
-            player.classList.add('hidden');
         }
     },
 
