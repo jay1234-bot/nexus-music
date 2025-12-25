@@ -101,6 +101,7 @@ const app = {
         shuffleBtn: document.getElementById('menu-shuffle'),
         playerSettingsBtn: document.getElementById('player-settings-btn'),
         playerSettingsMenu: document.getElementById('player-settings-menu'),
+        volumeControl: document.getElementById('volume-control'),
         queueList: document.getElementById('queue-list'),
         lyricsContent: document.getElementById('lyrics-content'),
         loading: document.getElementById('app-loading'),
@@ -349,6 +350,10 @@ const app = {
             if (this.els.playerSettingsMenu && this.els.playerSettingsMenu.classList.contains('active') &&
                 !this.els.playerSettingsMenu.contains(e.target) && !e.target.closest('#player-settings-btn')) {
                 this.togglePlayerSettings();
+            }
+            if (this.els.volumeControl && this.els.volumeControl.classList.contains('active') &&
+                !this.els.volumeControl.contains(e.target)) {
+                this.els.volumeControl.classList.remove('active');
             }
         });
     },
@@ -1390,6 +1395,9 @@ const app = {
         this.els.playerSettingsMenu.classList.toggle('active');
 
         if (this.els.playerSettingsMenu.classList.contains('active')) {
+            // Close other menus
+            if (this.els.volumeControl) this.els.volumeControl.classList.remove('active');
+
             // Update items in menu to match state
             this.updateShuffleUI();
             this.updateRepeatUI();
@@ -1399,6 +1407,18 @@ const app = {
                 if (badge) badge.textContent = this.data.settings.quality + 'k';
             });
         }
+    },
+
+    toggleVolumeSlider(e) {
+        if (e) e.stopPropagation();
+        if (!this.els.volumeControl) return;
+
+        const isActive = this.els.volumeControl.classList.contains('active');
+
+        // Close other menus
+        if (this.els.playerSettingsMenu) this.els.playerSettingsMenu.classList.remove('active');
+
+        this.els.volumeControl.classList.toggle('active');
     },
 
     // ===== QUEUE =====
