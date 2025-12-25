@@ -99,6 +99,8 @@ const app = {
         likeBtn: document.getElementById('like-btn'),
         repeatBtn: document.getElementById('repeat-btn'),
         shuffleBtn: document.getElementById('shuffle-btn'),
+        playerSettingsBtn: document.getElementById('player-settings-btn'),
+        playerSettingsMenu: document.getElementById('player-settings-menu'),
         queueList: document.getElementById('queue-list'),
         lyricsContent: document.getElementById('lyrics-content'),
         loading: document.getElementById('app-loading')
@@ -342,6 +344,10 @@ const app = {
         document.addEventListener('mousedown', (e) => {
             if (this.els.lyricsPanel.classList.contains('active') && !this.els.lyricsPanel.contains(e.target) && !e.target.closest('.artwork-btn')) {
                 this.toggleLyrics();
+            }
+            if (this.els.playerSettingsMenu && this.els.playerSettingsMenu.classList.contains('active') &&
+                !this.els.playerSettingsMenu.contains(e.target) && !e.target.closest('#player-settings-btn')) {
+                this.togglePlayerSettings();
             }
         });
     },
@@ -1225,16 +1231,41 @@ const app = {
         const currentIndex = modes.indexOf(this.data.repeatMode);
         this.data.repeatMode = modes[(currentIndex + 1) % modes.length];
 
-        this.els.repeatBtn.classList.toggle('active', this.data.repeatMode !== 'off');
-        this.els.repeatBtn.querySelector('i').className =
-            this.data.repeatMode === 'one' ? 'fas fa-redo' : 'fas fa-redo';
-        this.els.repeatBtn.title = `Repeat: ${this.data.repeatMode}`;
+        this.updateRepeatUI();
+    },
+
+    updateRepeatUI() {
+        const labelEl = document.getElementById('repeat-label');
+        if (labelEl) {
+            labelEl.textContent = this.data.repeatMode.charAt(0).toUpperCase() + this.data.repeatMode.slice(1);
+        }
+
+        const menuRepeat = document.getElementById('menu-repeat');
+        if (menuRepeat) {
+            menuRepeat.classList.toggle('active', this.data.repeatMode !== 'off');
+        }
+
+        if (this.els.repeatBtn) {
+            this.els.repeatBtn.classList.toggle('active', this.data.repeatMode !== 'off');
+            this.els.repeatBtn.title = `Repeat: ${this.data.repeatMode}`;
+        }
     },
 
     setShuffle() {
         this.data.shuffle = !this.data.shuffle;
-        this.els.shuffleBtn.classList.toggle('active', this.data.shuffle);
-        // Implement shuffle logic if needed
+        this.updateShuffleUI();
+        // Implement shuffle logic here if needed (e.g., shuffling queue)
+    },
+
+    updateShuffleUI() {
+        const dot = document.getElementById('shuffle-dot');
+        if (dot) {
+            dot.parentElement.classList.toggle('active', this.data.shuffle);
+        }
+
+        if (this.els.shuffleBtn) {
+            this.els.shuffleBtn.classList.toggle('active', this.data.shuffle);
+        }
     },
 
     // ===== EQUALIZER =====
@@ -1348,6 +1379,22 @@ const app = {
 
     toggleSettings() {
         this.els.settingsPanel.classList.toggle('active');
+    },
+
+    togglePlayerSettings() {
+        if (!this.els.playerSettingsMenu) return;
+        this.els.playerSettingsMenu.classList.toggle('active');
+
+        if (this.els.playerSettingsMenu.classList.contains('active')) {
+            // Update items in menu to match state
+            this.updateShuffleUI();
+            this.updateRepeatUI();
+
+            const qualityBadges = document.querySelectorAll('#menu-quality-badge, #quality-badge');
+            qualityBadges.forEach(badge => {
+                if (badge) badge.textContent = this.data.settings.quality + 'k';
+            });
+        }
     },
 
     // ===== QUEUE =====
