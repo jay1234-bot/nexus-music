@@ -404,11 +404,8 @@
                         <div class="track-artist" id="player-artist">Select a song</div>
                     </div>
                     <div class="track-actions">
-                        <button class="player-icon-btn" onclick="app.toggleLike()" id="like-btn">
+                        <button class="player-icon-btn active" onclick="app.toggleLike()" id="like-btn" title="Like">
                             <i class="far fa-heart"></i>
-                        </button>
-                        <button class="player-icon-btn" onclick="app.addToQueue()">
-                            <i class="fas fa-list"></i>
                         </button>
                     </div>
                 </div>
@@ -416,9 +413,6 @@
                 <!-- Player Controls -->
                 <div class="player-controls">
                     <div class="control-buttons">
-                        <button class="control-btn" onclick="app.setRepeatMode()" id="repeat-btn" title="Repeat">
-                            <i class="fas fa-redo"></i>
-                        </button>
                         <button class="control-btn" onclick="app.skipPrevious()">
                             <i class="fas fa-step-backward"></i>
                         </button>
@@ -427,9 +421,6 @@
                         </button>
                         <button class="control-btn" onclick="app.skipNext()">
                             <i class="fas fa-step-forward"></i>
-                        </button>
-                        <button class="control-btn" onclick="app.setShuffle()" id="shuffle-btn" title="Shuffle">
-                            <i class="fas fa-random"></i>
                         </button>
                     </div>
                     <div class="progress-container">
@@ -444,19 +435,54 @@
 
                 <!-- Player Extras -->
                 <div class="player-extras">
-                    <div class="quality-badge" id="quality-badge">96k</div>
-                    <button class="player-icon-btn" onclick="app.toggleQueue()" id="queue-btn">
-                        <i class="fas fa-stream"></i>
-                    </button>
                     <div class="volume-control">
                         <button class="player-icon-btn" onclick="app.toggleMute()" id="mute-btn">
                             <i class="fas fa-volume-up"></i>
                         </button>
                         <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70">
                     </div>
-                    <button class="player-icon-btn" onclick="app.toggleFullscreen()">
-                        <i class="fas fa-expand"></i>
+                    <button class="player-icon-btn" onclick="app.togglePlayerSettings()" id="player-settings-btn"
+                        title="Player Settings">
+                        <i class="fas fa-cog"></i>
                     </button>
+                </div>
+            </div>
+
+            <!-- Player Settings Menu -->
+            <div class="player-settings-menu" id="player-settings-menu">
+                <div class="settings-menu-header">
+                    <span>Playback Settings</span>
+                </div>
+                <div class="settings-menu-content">
+                    <div class="menu-item" onclick="app.setShuffle()" id="menu-shuffle">
+                        <i class="fas fa-random"></i>
+                        <span>Shuffle</span>
+                        <div class="status-dot" id="shuffle-dot"></div>
+                    </div>
+                    <div class="menu-item" onclick="app.setRepeatMode()" id="menu-repeat">
+                        <i class="fas fa-redo"></i>
+                        <span>Repeat</span>
+                        <div class="status-label" id="repeat-label">Off</div>
+                    </div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item" onclick="app.toggleQueue()">
+                        <i class="fas fa-stream"></i>
+                        <span>Full Queue</span>
+                    </div>
+                    <div class="menu-item" onclick="app.addToQueue()">
+                        <i class="fas fa-plus"></i>
+                        <span>Add next to queue</span>
+                    </div>
+                    <div class="menu-item" onclick="app.toggleFullscreen()">
+                        <i class="fas fa-expand"></i>
+                        <span>Fullscreen</span>
+                    </div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item-static">
+                        <i class="fas fa-bolt"></i>
+                        <span>Quality:</span>
+                        <div class="quality-badge" id="menu-quality-badge">96k</div>
+                    </div>
                 </div>
             </div>
 
