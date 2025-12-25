@@ -1503,31 +1503,28 @@ const app = {
 
         const title = song.name || song.title;
         const artist = this.getArtistName(song);
-        const query = `${title} ${artist}`;
 
-        console.log('Fetching lyrics for:', query);
+        // Clean title for better matching (remove brackets, etc)
+        const cleanTitle = title.replace(/\(.*\)|\[.*\]/g, '').trim();
+        const query = encodeURIComponent(cleanTitle);
+
+        console.log('Fetching lyrics for:', cleanTitle);
 
         this.els.lyricsContent.innerHTML = `
             <div class="lyrics-empty">
                 <i class="fas fa-circle-notch fa-spin"></i>
-                <p>Fetching lyrics from the universe...</p>
+                <p>Summoning lyrics for<br><strong>${cleanTitle}</strong>...</p>
             </div>
         `;
 
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            const apiUrl = `https://lyrics.lewdhutao.my.eu.org/v2/youtube/lyrics?title=${encodeURIComponent(query)}`;
+            // Using a more reliable proxy and title-only for better hit rate
+            const apiUrl = `https://lyrics.lewdhutao.my.eu.org/v2/youtube/lyrics?title=${query}`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
 
-            const response = await fetch(proxyUrl, {
-                signal: controller.signal
-            });
+            const response = await fetch(proxyUrl);
 
-            clearTimeout(timeoutId);
-
-            if (!response.ok) throw new Error('API Response Error');
+            if (!response.ok) throw new Error('Proxy or API Error');
 
             const data = await response.json();
 
@@ -1535,29 +1532,31 @@ const app = {
                 let lyricsHtml = '';
                 const lyricsText = data.lyrics;
 
-                if (typeof lyricsText === 'string') {
-                    const lines = lyricsText.split('\n');
-                    lyricsHtml = lines.map(line => line.trim() ? `<div class="lyrics-line">${line}</div>` : '<br>').join('');
-                } else if (Array.isArray(lyricsText)) {
-                    lyricsHtml = lyricsText.map(line => line.trim() ? `<div class="lyrics-line">${line}</div>` : '<br>').join('');
-                }
+                // Better line parsing
+                const lines = typeof lyricsText === 'string' ? lyricsText.split('\n') : (Array.isArray(lyricsText) ? lyricsText : []);
 
-                if (lyricsHtml) {
+                if (lines.length > 0) {
+                    lyricsHtml = lines.map(line => {
+                        const trimmed = line.trim();
+                        if (!trimmed) return '<div class="lyrics-spacer"></div>';
+                        return `<div class="lyrics-line">${trimmed}</div>`;
+                    }).join('');
+
                     this.els.lyricsContent.innerHTML = lyricsHtml;
-                    // Scroll to top
                     this.els.lyricsContent.scrollTop = 0;
                 } else {
-                    throw new Error('Empty lyrics data');
+                    throw new Error('No lines found');
                 }
             } else {
-                throw new Error('No lyrics available');
+                throw new Error('No lyrics in response');
             }
         } catch (error) {
-            console.error('Lyrics Error:', error);
+            console.error('Lyrics Fetch Error:', error);
             this.els.lyricsContent.innerHTML = `
                 <div class="lyrics-empty">
                     <i class="fas fa-microphone-slash"></i>
-                    <p>No lyrics found for this song</p>
+                    <p>No lyrics found for<br><strong>${cleanTitle}</strong></p>
+                    <span style="font-size: 14px; opacity: 0.6;">Check back later!</span>
                 </div>
             `;
         }
