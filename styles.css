@@ -1104,7 +1104,6 @@ body {
     transform: translateX(-50%);
     width: 95%;
     max-width: 1100px;
-    /* Longer as requested */
     height: 85px;
     background: rgba(10, 14, 30, 0.85);
     backdrop-filter: blur(40px) saturate(210%);
@@ -1114,6 +1113,12 @@ body {
     z-index: 4000;
     transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
     box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+}
+
+body.extended-player-active .audio-player {
+    transform: translate(-50%, 150px);
+    opacity: 0;
+    pointer-events: none;
 }
 
 .audio-player:hover {
@@ -1391,19 +1396,20 @@ body {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%) translateY(0) scale(0.9);
-    padding: 25px 8px;
-    /* Narrower and taller */
-    background: rgba(10, 15, 35, 0.98);
-    /* Darker and more opaque */
-    backdrop-filter: blur(30px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 30px;
-    /* More pill-like */
+    width: 45px;
+    height: 180px;
+    background: rgba(10, 15, 30, 0.98);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 25px;
     margin-bottom: 25px;
     opacity: 0;
     pointer-events: none;
     transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .volume-control.active .volume-slider-wrapper {
@@ -1416,24 +1422,24 @@ body {
     -webkit-appearance: none;
     appearance: none;
     width: 140px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
     outline: none;
     transform: rotate(-90deg);
-    margin: 70px -60px;
     cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: none;
+    margin: 0;
 }
 
 .volume-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 14px;
-    height: 14px;
-    background: #fff;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
     border-radius: 50%;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 12px var(--primary);
     transition: transform 0.2s;
 }
 
@@ -2511,7 +2517,7 @@ body {
 }
 
 /* Hide Mini Player when Extended Player is active */
-body:has(#extended-player:not(.hidden)) .audio-player {
+body.extended-player-active .audio-player {
     transform: translate(-50%, 150px);
     opacity: 0;
     pointer-events: none;
