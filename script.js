@@ -1515,7 +1515,9 @@ const app = {
         `;
 
         try {
-            // Using a timeout for the fetch to avoid hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
             const apiUrl = `https://lyrics.lewdhutao.my.eu.org/v2/youtube/lyrics?title=${encodeURIComponent(query)}`;
             const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
 
