@@ -481,134 +481,135 @@
                     <div class="menu-item-static">
                         <i class="fas fa-bolt"></i>
                         <span>Quality:</span>
-                        <div class="quality-badge" id="menu-quality-badge">96k</div>
+                        <div class="quality-badge" id="quality-badge">96k</div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Queue Panel -->
-            <div class="queue-panel" id="queue-panel">
-                <div class="queue-header">
-                    <h3>Queue</h3>
-                    <div class="queue-actions">
-                        <button class="icon-btn active" id="autoplay-btn" onclick="app.toggleAutoplay()"
-                            title="Autoplay">
-                            <i class="fas fa-infinity"></i>
-                        </button>
-                        <button class="close-btn" onclick="app.toggleQueue()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="queue-list" id="queue-list">
-                    <p class="empty-state">Queue is empty</p>
-                </div>
-            </div>
-
-            <!-- Lyrics Panel -->
-            <div class="lyrics-panel" id="lyrics-panel">
-                <div class="lyrics-header">
-                    <h3>Lyrics</h3>
-                    <button class="close-btn" onclick="app.toggleLyrics()">
+        <!-- Queue Panel (Moved outside player) -->
+        <div class="queue-panel" id="queue-panel">
+            <div class="queue-header">
+                <h3>Queue</h3>
+                <div class="queue-actions">
+                    <button class="icon-btn active" id="autoplay-btn" onclick="app.toggleAutoplay()" title="Autoplay">
+                        <i class="fas fa-infinity"></i>
+                    </button>
+                    <button class="close-btn" onclick="app.toggleQueue()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="lyrics-content" id="lyrics-content">
-                    <p class="empty-state">No lyrics available</p>
-                </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Extended Player Overlay -->
-    <div id="extended-player" class="extended-player hidden">
-        <div class="extended-background" id="extended-bg"></div>
-        <div class="extended-content">
-            <div class="extended-header">
-                <button class="icon-btn" onclick="app.toggleExtendedPlayer()">
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <span>Now Playing</span>
-                <button class="icon-btn" onclick="app.toggleExtendedQueue()">
-                    <i class="fas fa-list"></i>
-                </button>
-            </div>
-
-            <div class="extended-artwork-container">
-                <div class="extended-artwork">
-                    <img src="" id="extended-img" alt="">
-                </div>
-            </div>
-
-            <div class="extended-info">
-                <div class="extended-text">
-                    <h2 id="extended-title">Song Title</h2>
-                    <p id="extended-artist">Artist Name</p>
-                </div>
-                <button class="icon-btn" id="extended-like-btn" onclick="app.toggleLike()">
-                    <i class="far fa-heart"></i>
-                </button>
-            </div>
-
-            <div class="extended-progress">
-                <div class="progress-bar extended-progress-bar" id="extended-progress-bar">
-                    <div class="progress-filled" id="extended-progress-filled"></div>
-                    <div class="progress-handle" id="extended-progress-handle"></div>
-                </div>
-                <div class="time-labels">
-                    <span id="extended-time-current">0:00</span>
-                    <span id="extended-time-total">0:00</span>
-                </div>
-            </div>
-
-            <div class="extended-controls">
-                <button class="control-btn" onclick="app.setShuffle()" id="extended-shuffle-btn">
-                    <i class="fas fa-random"></i>
-                </button>
-                <button class="control-btn medium" onclick="app.skipPrevious()">
-                    <i class="fas fa-step-backward"></i>
-                </button>
-                <button class="play-pause-btn large" onclick="app.togglePlay()" id="extended-play-btn">
-                    <i class="fas fa-play"></i>
-                </button>
-                <button class="control-btn medium" onclick="app.skipNext()">
-                    <i class="fas fa-step-forward"></i>
-                </button>
-                <button class="control-btn" onclick="app.setRepeatMode()" id="extended-repeat-btn">
-                    <i class="fas fa-redo"></i>
-                </button>
+            <div class="queue-list" id="queue-list">
+                <p class="empty-state">Queue is empty</p>
             </div>
         </div>
 
-        <!-- Extended Queue Panel (New) -->
-        <div class="extended-queue-panel hidden" id="extended-queue-panel">
-            <div class="glass-header">
-                <h3>Up Next</h3>
-                <button class="icon-btn" onclick="app.toggleExtendedQueue()">
+        <!-- Lyrics Panel (Already has fixed position, just move out of player) -->
+        <div class="lyrics-panel" id="lyrics-panel">
+            <div class="lyrics-header">
+                <h3>Lyrics</h3>
+                <button class="close-btn" onclick="app.toggleLyrics()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="extended-queue-list" id="extended-queue-list">
-                <!-- Queue items will be injected here -->
+            <div class="lyrics-content" id="lyrics-content">
+                <div class="lyrics-empty">
+                    <i class="fas fa-music"></i>
+                    <p>Play a song to see lyrics</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Audio Element -->
-    <audio id="audio-element" crossorigin="anonymous" preload="auto"></audio>
+        <!-- Extended Player Overlay -->
+        <div id="extended-player" class="extended-player hidden">
+            <div class="extended-background" id="extended-bg"></div>
+            <div class="extended-content">
+                <div class="extended-header">
+                    <button class="icon-btn" onclick="app.toggleExtendedPlayer()">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <span>Now Playing</span>
+                    <button class="icon-btn" onclick="app.toggleExtendedQueue()">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast"></div>
+                <div class="extended-artwork-container">
+                    <div class="extended-artwork">
+                        <img src="" id="extended-img" alt="">
+                    </div>
+                </div>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+                <div class="extended-info">
+                    <div class="extended-text">
+                        <h2 id="extended-title">Song Title</h2>
+                        <p id="extended-artist">Artist Name</p>
+                    </div>
+                    <button class="icon-btn" id="extended-like-btn" onclick="app.toggleLike()">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
 
-    <!-- Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+                <div class="extended-progress">
+                    <div class="progress-bar extended-progress-bar" id="extended-progress-bar">
+                        <div class="progress-filled" id="extended-progress-filled"></div>
+                        <div class="progress-handle" id="extended-progress-handle"></div>
+                    </div>
+                    <div class="time-labels">
+                        <span id="extended-time-current">0:00</span>
+                        <span id="extended-time-total">0:00</span>
+                    </div>
+                </div>
 
-    <script src="script.js"></script>
+                <div class="extended-controls">
+                    <button class="control-btn" onclick="app.setShuffle()" id="extended-shuffle-btn">
+                        <i class="fas fa-random"></i>
+                    </button>
+                    <button class="control-btn medium" onclick="app.skipPrevious()">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button class="play-pause-btn large" onclick="app.togglePlay()" id="extended-play-btn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="control-btn medium" onclick="app.skipNext()">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button class="control-btn" onclick="app.setRepeatMode()" id="extended-repeat-btn">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Extended Queue Panel (New) -->
+            <div class="extended-queue-panel hidden" id="extended-queue-panel">
+                <div class="glass-header">
+                    <h3>Up Next</h3>
+                    <button class="icon-btn" onclick="app.toggleExtendedQueue()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="extended-queue-list" id="extended-queue-list">
+                    <!-- Queue items will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Element -->
+        <audio id="audio-element" crossorigin="anonymous" preload="auto"></audio>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast"></div>
+
+        <!-- Firebase SDKs -->
+        <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+        <!-- Supabase SDK -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+        <script src="script.js"></script>
 </body>
 
 </html>
