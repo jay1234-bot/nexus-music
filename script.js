@@ -97,13 +97,14 @@ const app = {
         muteBtn: document.getElementById('mute-btn'),
         qualityBadge: document.getElementById('quality-badge'),
         likeBtn: document.getElementById('like-btn'),
-        repeatBtn: document.getElementById('repeat-btn'),
-        shuffleBtn: document.getElementById('shuffle-btn'),
+        repeatBtn: document.getElementById('menu-repeat'),
+        shuffleBtn: document.getElementById('menu-shuffle'),
         playerSettingsBtn: document.getElementById('player-settings-btn'),
         playerSettingsMenu: document.getElementById('player-settings-menu'),
         queueList: document.getElementById('queue-list'),
         lyricsContent: document.getElementById('lyrics-content'),
-        loading: document.getElementById('app-loading')
+        loading: document.getElementById('app-loading'),
+        player: document.querySelector('.audio-player')
     },
 
     // ===== INITIALIZATION =====
@@ -1012,8 +1013,10 @@ const app = {
 
         // Update quality badge
         const quality = this.data.settings.quality;
-        this.els.qualityBadge.textContent = `${quality}k`;
-        this.els.qualityBadge.classList.toggle('premium', quality === '320' || quality === '160');
+        if (this.els.qualityBadge) {
+            this.els.qualityBadge.textContent = `${quality}k`;
+            this.els.qualityBadge.classList.toggle('premium', quality === '320' || quality === '160');
+        }
 
         // Stop any currently playing audio
         this.els.audio.pause();
@@ -1089,7 +1092,8 @@ const app = {
 
     updatePlayState(playing) {
         this.data.isPlaying = playing;
-        this.els.playIcon.className = playing ? 'fas fa-pause' : 'fas fa-play';
+        if (this.els.playIcon) this.els.playIcon.className = playing ? 'fas fa-pause' : 'fas fa-play';
+        if (this.els.player) this.els.player.classList.toggle('playing', playing);
         this.updateExtendedPlayer(); // Sync extended player
     },
 
@@ -1640,7 +1644,7 @@ const app = {
                 this.loadLyrics(this.data.currentTrack);
             }
         } else {
-            this.els.lyricsPanel.classList.remove('active');
+            if (this.els.lyricsPanel) this.els.lyricsPanel.classList.remove('active');
         }
     },
 
