@@ -2398,10 +2398,10 @@ body {
     width: 95%;
     max-width: 700px;
     height: 85vh;
-    background: linear-gradient(135deg, rgba(20, 27, 45, 0.8) 0%, rgba(10, 14, 39, 0.9) 100%);
-    backdrop-filter: blur(40px) saturate(200%);
-    -webkit-backdrop-filter: blur(40px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, rgba(10, 14, 30, 0.95) 0%, rgba(5, 7, 20, 0.98) 100%);
+    backdrop-filter: blur(50px) saturate(200%);
+    -webkit-backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 40px;
     z-index: 5000;
     display: flex;
@@ -2490,29 +2490,32 @@ body {
 
 .lyrics-line {
     margin: 40px 0;
-    opacity: 0.2;
+    opacity: 0.5;
+    /* Increased from 0.2 for better visibility */
     transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     cursor: default;
-    font-weight: 900;
-    filter: blur(2px);
+    font-weight: 800;
+    /* Slightly reduced weight for better legibility at this size */
+    filter: none;
+    /* Removed blur for crispness */
     transition-delay: 0.1s;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    /* Added shadow for contrast */
 }
 
 .lyrics-line:hover {
-    opacity: 0.7;
+    opacity: 0.8;
     transform: scale(1.05);
-    filter: blur(0px);
     color: var(--primary);
 }
 
 .lyrics-line.active {
     opacity: 1;
-    transform: scale(1.25);
-    filter: blur(0px);
+    transform: scale(1.2);
     color: #fff;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
-        0 0 40px var(--primary),
-        0 0 60px var(--primary);
+        0 0 40px var(--primary);
+    filter: none;
 }
 
 .lyrics-empty {
