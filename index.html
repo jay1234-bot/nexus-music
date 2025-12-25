@@ -435,11 +435,14 @@
 
                 <!-- Player Extras -->
                 <div class="player-extras">
-                    <div class="volume-control">
-                        <button class="player-icon-btn" onclick="app.toggleMute()" id="mute-btn">
+                    <div class="volume-control" id="volume-control">
+                        <div class="volume-slider-wrapper" id="volume-slider-wrapper">
+                            <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70">
+                        </div>
+                        <button class="player-icon-btn" onclick="app.toggleVolumeSlider(event)" id="mute-btn"
+                            title="Volume">
                             <i class="fas fa-volume-up"></i>
                         </button>
-                        <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70">
                     </div>
                     <button class="player-icon-btn" onclick="app.togglePlayerSettings()" id="player-settings-btn"
                         title="Player Settings">
