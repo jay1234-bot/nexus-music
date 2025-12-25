@@ -1103,19 +1103,17 @@ body {
     left: 50%;
     transform: translateX(-50%);
     width: 95%;
-    max-width: 800px;
-    /* Even smaller and more centered */
-    height: 80px;
-    /* Compact height */
+    max-width: 1100px;
+    /* Longer as requested */
+    height: 85px;
     background: rgba(10, 14, 30, 0.85);
-    /* Slightly darker */
-    backdrop-filter: blur(35px) saturate(210%);
-    -webkit-backdrop-filter: blur(35px) saturate(210%);
+    backdrop-filter: blur(40px) saturate(210%);
+    -webkit-backdrop-filter: blur(40px) saturate(210%);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 40px;
+    border-radius: 45px;
     z-index: 4000;
     transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
 }
 
 .audio-player:hover {
@@ -1370,9 +1368,65 @@ body {
 .player-extras {
     display: flex;
     align-items: center;
-    gap: 20px;
-    flex: 0 0 30%;
+    gap: 24px;
+    flex: 0 0 35%;
     justify-content: flex-end;
+}
+
+.volume-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.volume-slider-wrapper {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(0) scale(0.9);
+    padding: 20px 10px;
+    background: rgba(15, 20, 50, 0.95);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    margin-bottom: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.volume-control.active .volume-slider-wrapper {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-50%) translateY(-10px) scale(1);
+}
+
+.volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 120px;
+    /* Height of the vertical bar */
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+    transform: rotate(-90deg);
+    /* Make it vertical */
+    margin: 60px -50px;
+    /* Adjust for rotation */
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--primary);
 }
 
 /* ===== PLAYER SETTINGS MENU ===== */
