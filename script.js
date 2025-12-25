@@ -237,8 +237,10 @@ const app = {
         // Player Controlsn
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', (e) => {
-                e.preventDefault();
                 const page = link.dataset.page;
+                if (!page) return; // Skip links like Logout that don't have data-page
+
+                e.preventDefault();
                 this.navigate(page);
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
@@ -335,6 +337,13 @@ const app = {
             this.data.settings.autoQuality = e.target.checked;
             this.saveSettings();
         });
+
+        // Close panels when clicking outside
+        document.addEventListener('mousedown', (e) => {
+            if (this.els.lyricsPanel.classList.contains('active') && !this.els.lyricsPanel.contains(e.target) && !e.target.closest('.artwork-btn')) {
+                this.toggleLyrics();
+            }
+        });
     },
 
     // ===== USER MANAGEMENT =====
@@ -350,28 +359,52 @@ const app = {
         };
 
         try {
+            // 1. Get Profile from Firebase (Main source for identity)
             const docRef = db.collection('users').doc(firebaseUser.uid);
             const doc = await docRef.get();
 
             if (doc.exists) {
                 this.data.user = { ...doc.data(), uid: firebaseUser.uid };
             } else {
-                // Try to create profile if missing
+                // Try to create profile if missing in Firebase
                 try {
                     const newUser = {
                         name: userData.name,
                         email: userData.email,
                         isAdmin: userData.isAdmin,
-                        isPremium: false,
-                        premiumRequest: 'none',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     await docRef.set(newUser);
                     this.data.user = { ...newUser, uid: firebaseUser.uid };
                 } catch (createError) {
-                    console.warn('Could not create user profile:', createError);
-                    this.data.user = userData; // Use fallback
+                    console.warn('Could not create Firebase profile:', createError);
+                    this.data.user = userData;
                 }
+            }
+
+            // 2. Get Premium Status from Supabase (Bypasses Firestore permissions)
+            try {
+                const { data: premiumData, error } = await supabaseClient
+                    .from('premium_status')
+                    .select('*')
+                    .eq('id', firebaseUser.uid)
+                    .single();
+
+                if (premiumData) {
+                    this.data.user.isPremium = premiumData.is_premium;
+                    this.data.user.premiumRequest = premiumData.status;
+                } else {
+                    // Create entry in Supabase if missing
+                    await supabaseClient.from('premium_status').insert([{
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        name: this.data.user.name,
+                        is_premium: false,
+                        status: 'none'
+                    }]);
+                }
+            } catch (supaError) {
+                console.warn('Supabase premium load error:', supaError);
             }
 
             // Auto Update Admin Status
@@ -538,8 +571,12 @@ const app = {
     },
 
     navigate(page) {
+        if (!page) return;
+        const pageEl = document.getElementById(`page-${page}`);
+        if (!pageEl) return;
+
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(`page-${page}`).classList.add('active');
+        pageEl.classList.add('active');
 
         // Close sidebar on mobile/when navigating if needed, or update active state
         document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
@@ -1462,17 +1499,86 @@ const app = {
 
     // ===== LYRICS =====
     async loadLyrics(song) {
-        this.els.lyricsContent.innerHTML = '<p class="empty-state">Loading lyrics...</p>';
+        if (!song) return;
 
-        // Skip lyrics fetching for now to avoid API errors
-        // Lyrics can be added later when API endpoint is available
-        this.els.lyricsContent.innerHTML = '<p class="empty-state">No lyrics available</p>';
+        const title = song.name || song.title;
+        const artist = this.getArtistName(song);
+        const query = `${title} ${artist}`;
+
+        console.log('Fetching lyrics for:', query);
+
+        this.els.lyricsContent.innerHTML = `
+            <div class="lyrics-empty">
+                <i class="fas fa-circle-notch fa-spin"></i>
+                <p>Fetching lyrics from the universe...</p>
+            </div>
+        `;
+
+        try {
+            // Using a timeout for the fetch to avoid hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            const response = await fetch(`https://lyrics.lewdhutao.my.eu.org/v2/youtube/lyrics?title=${encodeURIComponent(query)}`, {
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) throw new Error('API Response Error');
+
+            const data = await response.json();
+
+            if (data && data.lyrics) {
+                let lyricsHtml = '';
+                const lyricsText = data.lyrics;
+
+                if (typeof lyricsText === 'string') {
+                    const lines = lyricsText.split('\n');
+                    lyricsHtml = lines.map(line => line.trim() ? `<div class="lyrics-line">${line}</div>` : '<br>').join('');
+                } else if (Array.isArray(lyricsText)) {
+                    lyricsHtml = lyricsText.map(line => line.trim() ? `<div class="lyrics-line">${line}</div>` : '<br>').join('');
+                }
+
+                if (lyricsHtml) {
+                    this.els.lyricsContent.innerHTML = lyricsHtml;
+                    // Scroll to top
+                    this.els.lyricsContent.scrollTop = 0;
+                } else {
+                    throw new Error('Empty lyrics data');
+                }
+            } else {
+                throw new Error('No lyrics available');
+            }
+        } catch (error) {
+            console.error('Lyrics Error:', error);
+            this.els.lyricsContent.innerHTML = `
+                <div class="lyrics-empty">
+                    <i class="fas fa-microphone-slash"></i>
+                    <p>No lyrics found for this song</p>
+                </div>
+            `;
+        }
     },
 
     toggleLyrics() {
-        this.els.lyricsPanel.classList.toggle('active');
-        if (this.els.lyricsPanel.classList.contains('active')) {
-            this.els.queuePanel.classList.remove('active');
+        if (!this.els.lyricsPanel) return;
+
+        const isActive = this.els.lyricsPanel.classList.contains('active');
+
+        if (!isActive) {
+            // Close other panels
+            if (this.els.queuePanel) this.els.queuePanel.classList.remove('active');
+            if (this.els.settingsPanel) this.els.settingsPanel.classList.remove('active');
+
+            this.els.lyricsPanel.classList.add('active');
+
+            // Load lyrics if not already loaded for current song
+            if (this.data.currentTrack && (!this.els.lyricsContent.innerHTML || this.els.lyricsContent.innerHTML.includes('No lyrics available'))) {
+                this.loadLyrics(this.data.currentTrack);
+            }
+        } else {
+            this.els.lyricsPanel.classList.remove('active');
         }
     },
 
@@ -1666,9 +1772,16 @@ const app = {
         if (!this.data.user) return;
 
         try {
-            await db.collection('users').doc(this.data.user.uid).update({
-                premiumRequest: 'pending'
-            });
+            const { error } = await supabaseClient
+                .from('premium_status')
+                .update({
+                    status: 'pending',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', this.data.user.uid);
+
+            if (error) throw error;
+
             this.data.user.premiumRequest = 'pending';
             this.updateUI();
             this.showToast('Premium request sent to Admin!');
@@ -1686,24 +1799,27 @@ const app = {
             const tbody = document.getElementById('admin-tbody');
             if (!tbody) return;
 
-            const snapshot = await db.collection('users').orderBy('createdAt', 'desc').get();
-            tbody.innerHTML = '';
+            const { data: users, error } = await supabaseClient
+                .from('premium_status')
+                .select('*')
+                .order('updated_at', { ascending: false });
 
+            if (error) throw error;
+
+            tbody.innerHTML = '';
             let pendingCount = 0;
             let premiumCount = 0;
 
-            snapshot.forEach(doc => {
-                const user = doc.data();
-                const uid = doc.id;
-
-                if (user.isPremium) premiumCount++;
-                if (user.premiumRequest === 'pending') pendingCount++;
+            users.forEach(user => {
+                const uid = user.id;
+                if (user.is_premium) premiumCount++;
+                if (user.status === 'pending') pendingCount++;
 
                 const row = document.createElement('tr');
                 let statusHtml = '';
-                if (user.isPremium) {
+                if (user.is_premium) {
                     statusHtml = '<span class="status-badge premium" style="color:var(--accent); font-weight:600;">Premium</span>';
-                } else if (user.premiumRequest === 'pending') {
+                } else if (user.status === 'pending') {
                     statusHtml = '<span class="status-badge pending" style="color:var(--primary); font-weight:600;">Pending</span>';
                 } else {
                     statusHtml = '<span class="status-badge free" style="color:var(--text-secondary);">Free</span>';
@@ -1715,12 +1831,12 @@ const app = {
                     <td>${statusHtml}</td>
                     <td>
                         <div class="admin-actions">
-                            ${!user.isPremium && user.premiumRequest === 'pending' ?
+                            ${!user.is_premium && user.status === 'pending' ?
                         `<button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'approve')">Approve</button>` : ''}
-                            ${user.isPremium ?
+                            ${user.is_premium ?
                         `<button class="admin-action-btn reject" onclick="app.adminAction('${uid}', 'cancel')">Cancel</button>
                                  <button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'extend')">Extend</button>` : ''}
-                            ${!user.isPremium && user.premiumRequest !== 'pending' ?
+                            ${!user.is_premium && user.status !== 'pending' ?
                         `<button class="admin-action-btn accept" onclick="app.adminAction('${uid}', 'approve')">Make Premium</button>` : ''}
                         </div>
                     </td>
@@ -1784,20 +1900,24 @@ const app = {
 
     async adminAction(uid, action) {
         try {
-            const docRef = db.collection('users').doc(uid);
             let updates = {};
 
             if (action === 'approve') {
-                updates = { isPremium: true, premiumRequest: 'approved' };
+                updates = { is_premium: true, status: 'approved' };
             } else if (action === 'cancel') {
-                updates = { isPremium: false, premiumRequest: 'none' };
+                updates = { is_premium: false, status: 'none' };
             } else if (action === 'extend') {
-                // For now, extending just resets expiry (logic can be expanded later)
-                updates = { isPremium: true, premiumRequest: 'approved' };
+                updates = { is_premium: true, status: 'approved', updated_at: new Date().toISOString() };
                 this.showToast('Premium extended for user');
             }
 
-            await docRef.update(updates);
+            const { error } = await supabaseClient
+                .from('premium_status')
+                .update(updates)
+                .eq('id', uid);
+
+            if (error) throw error;
+
             this.loadAdmin();
             this.showToast(`User premium updated: ${action}`);
         } catch (error) {
