@@ -2561,3 +2561,7 @@ body {
         margin: 20px 0;
     }
 }
+
+.lyrics-spacer {
+    height: 40px;
+}
