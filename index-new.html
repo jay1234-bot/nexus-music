@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Music - Premium Experience</title>
+    <link rel="stylesheet" href="styles-new.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="icon" type="image/png" href="Minimalist and styli.png">
+</head>
+
+<body>
+    <!-- App Loading -->
+    <div id="app-loading" class="app-loading">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Nexus Music</div>
+            <div class="loader-subtext">Loading your premium experience...</div>
+        </div>
+    </div>
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="auth-overlay hidden">
+        <div class="auth-background"></div>
+        <div class="auth-container">
+            <div class="auth-box" id="login-box">
+                <div class="auth-brand">
+                    <div class="brand-icon"><i class="fas fa-music"></i></div>
+                    <h1>Nexus Music</h1>
+                    <p>Welcome back to your music sanctuary</p>
+                </div>
+                <div class="auth-form">
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="login-email" placeholder="Email address">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-pass" placeholder="Password">
+                    </div>
+                    <button class="auth-btn" onclick="app.login()">
+                        <span>Sign In</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <p class="auth-switch">Don't have an account? <span onclick="app.switchAuth('signup')">Sign
+                            Up</span></p>
+                </div>
+            </div>
+            <div class="auth-box hidden" id="signup-box">
+                <div class="auth-brand">
+                    <div class="brand-icon"><i class="fas fa-music"></i></div>
+                    <h1>Join Nexus</h1>
+                    <p>Create your account and discover music</p>
+                </div>
+                <div class="auth-form">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="signup-name" placeholder="Full name">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="signup-email" placeholder="Email address">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="signup-pass" placeholder="Password">
+                    </div>
+                    <button class="auth-btn" onclick="app.signup()">
+                        <span>Create Account</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <p class="auth-switch">Already have an account? <span onclick="app.switchAuth('login')">Sign
+                            In</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-container" class="app-container hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fas fa-compact-disc"></i></div>
+                    <span class="logo-text">Nexus</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="nav-link" data-page="search">
+                    <i class="fas fa-search"></i>
+                    <span>Search</span>
+                </a>
+                <a href="#" class="nav-link" data-page="library">
+                    <i class="fas fa-heart"></i>
+                    <span>Your Library</span>
+                </a>
+                <a href="#" class="nav-link" data-page="playlists">
+                    <i class="fas fa-list-ul"></i>
+                    <span>Playlists</span>
+                </a>
+                <div class="nav-divider"></div>
+                <a href="#" class="nav-link hidden" id="admin-link" data-page="admin">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Admin Panel</span>
+                </a>
+                <a href="#" class="nav-link premium-link" id="sidebar-premium-btn" onclick="app.requestPremium()">
+                    <i class="fas fa-crown"></i>
+                    <span>Go Premium</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">User</div>
+                        <div class="user-badge" id="user-badge">Free</div>
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="app.logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Search for songs, artists, albums..."
+                        onkeydown="if(event.key==='Enter') app.search(this.value)">
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" onclick="app.toggleSettings()">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <div class="header-user">
+                        <span id="header-username">User</span>
+                        <div class="header-avatar" id="header-avatar">U</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Pages -->
+            <div class="pages-container">
+                <!-- Home Page -->
+                <div id="page-home" class="page active">
+                    <div class="hero">
+                        <div class="hero-content">
+                            <h1 class="hero-title">Welcome Back</h1>
+                            <p class="hero-subtitle">Continue your musical journey</p>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="hero-btn" onclick="app.navigate('playlists')">
+                                <i class="fas fa-list"></i>
+                                <span>My Playlists</span>
+                            </button>
+                            <button class="hero-btn secondary" onclick="app.navigate('library')">
+                                <i class="fas fa-heart"></i>
+                                <span>Liked Songs</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>Trending Now</h2>
+                            <div class="section-line"></div>
+                        </div>
+                        <div class="card-grid" id="trending-grid"></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>New Releases</h2>
+                            <div class="section-line"></div>
+                        </div>
+                        <div class="card-grid" id="newreleases-grid"></div>
+                    </div>
+                    <div class="section">
+                        <div class="section-header">
+                            <h2>Top Charts</h2>
+                            <div class="section-line"></div>
+                        </div>
+                        <div class="card-grid" id="charts-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Search Page -->
+                <div id="page-search" class="page">
+                    <div class="section">
+                        <h2 class="section-title">Search Results</h2>
+                        <div class="card-grid" id="search-grid">
+                            <p class="empty-state">Search for songs, artists, or albums...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Library Page -->
+                <div id="page-library" class="page">
+                    <div class="section">
+                        <h2 class="section-title">Your Library</h2>
+                        <div class="card-grid" id="library-list">
+                            <p class="empty-state">Your library is empty</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playlists Page -->
+                <div id="page-playlists" class="page">
+                    <div class="section">
+                        <div class="section-header-actions">
+                            <h2 class="section-title">Your Playlists</h2>
+                            <button class="btn-create" onclick="app.createPlaylist()">
+                                <i class="fas fa-plus"></i>
+                                <span>Create Playlist</span>
+                            </button>
+                        </div>
+                        <div class="card-grid" id="playlists-grid">
+                            <p class="empty-state">No playlists yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Page -->
+                <div id="page-admin" class="page">
+                    <div class="section">
+                        <h2 class="section-title">Admin Dashboard</h2>
+                        <div class="admin-stats">
+                            <div class="stat-card">
+                                <h3>Pending Requests</h3>
+                                <div class="stat-value" id="admin-pending">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Premium Users</h3>
+                                <div class="stat-value" id="admin-premium">0</div>
+                            </div>
+                        </div>
+                        <div class="admin-table-container">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Settings Panel -->
+        <div id="settings-panel" class="settings-panel">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-btn" onclick="app.toggleSettings()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h3>Audio Quality</h3>
+                    <div class="quality-options">
+                        <label class="quality-option">
+                            <input type="radio" name="quality" value="96" checked>
+                            <span>96 kbps (Low Data)</span>
+                        </label>
+                        <label class="quality-option">
+                            <input type="radio" name="quality" value="128">
+                            <span>128 kbps (Normal)</span>
+                        </label>
+                        <label class="quality-option">
+                            <input type="radio" name="quality" value="160">
+                            <span>160 kbps (Good)</span>
+                        </label>
+                        <label class="quality-option">
+                            <input type="radio" name="quality" value="320">
+                            <span>320 kbps (Premium)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Equalizer</h3>
+                    <div class="equalizer-presets">
+                        <button class="preset-btn active" data-preset="flat">Flat</button>
+                        <button class="preset-btn" data-preset="pop">Pop</button>
+                        <button class="preset-btn" data-preset="rock">Rock</button>
+                        <button class="preset-btn" data-preset="jazz">Jazz</button>
+                        <button class="preset-btn" data-preset="classical">Classical</button>
+                        <button class="preset-btn" data-preset="bass">Bass</button>
+                    </div>
+                    <div class="equalizer-bands" id="equalizer-bands">
+                        <div class="eq-band">
+                            <label>60Hz</label>
+                            <input type="range" class="eq-slider" data-band="0" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>170Hz</label>
+                            <input type="range" class="eq-slider" data-band="1" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>310Hz</label>
+                            <input type="range" class="eq-slider" data-band="2" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>600Hz</label>
+                            <input type="range" class="eq-slider" data-band="3" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>1kHz</label>
+                            <input type="range" class="eq-slider" data-band="4" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>3kHz</label>
+                            <input type="range" class="eq-slider" data-band="5" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>6kHz</label>
+                            <input type="range" class="eq-slider" data-band="6" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>12kHz</label>
+                            <input type="range" class="eq-slider" data-band="7" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>14kHz</label>
+                            <input type="range" class="eq-slider" data-band="8" min="-12" max="12" value="0">
+                        </div>
+                        <div class="eq-band">
+                            <label>16kHz</label>
+                            <input type="range" class="eq-slider" data-band="9" min="-12" max="12" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Sound Enhancement</h3>
+                    <div class="enhancement-options">
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="bass-boost">
+                            <span>Bass Boost</span>
+                        </label>
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="3d-sound">
+                            <span>3D Sound</span>
+                        </label>
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="loudness">
+                            <span>Loudness Enhancement</span>
+                        </label>
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="normalize">
+                            <span>Audio Normalization</span>
+                        </label>
+                    </div>
+                    <div class="enhancement-controls">
+                        <div class="control-group">
+                            <label>Bass Level</label>
+                            <input type="range" id="bass-level" min="0" max="100" value="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Treble Level</label>
+                            <input type="range" id="treble-level" min="0" max="100" value="50">
+                        </div>
+                        <div class="control-group">
+                            <label>Volume Boost</label>
+                            <input type="range" id="volume-boost" min="0" max="50" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>Data Optimization</h3>
+                    <div class="optimization-options">
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="low-data" checked>
+                            <span>Low Data Mode</span>
+                        </label>
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="cache-audio">
+                            <span>Cache Audio</span>
+                        </label>
+                        <label class="enhancement-toggle">
+                            <input type="checkbox" id="auto-quality">
+                            <span>Auto Quality</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Player -->
+        <div class="audio-player" id="audio-player">
+            <div class="player-track">
+                <div class="track-artwork" id="player-artwork">
+                    <img src="" alt="" id="player-img">
+                    <div class="artwork-glow"></div>
+                </div>
+                <div class="track-info">
+                    <div class="track-name" id="player-title">Not Playing</div>
+                    <div class="track-artist" id="player-artist">Select a song</div>
+                </div>
+                <button class="icon-btn" onclick="app.toggleLike()" id="like-btn">
+                    <i class="far fa-heart"></i>
+                </button>
+            </div>
+
+            <div class="player-controls">
+                <div class="control-buttons">
+                    <button class="control-btn" onclick="app.setShuffle()" id="shuffle-btn">
+                        <i class="fas fa-random"></i>
+                    </button>
+                    <button class="control-btn" onclick="app.skipPrevious()">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button class="play-pause-btn" onclick="app.togglePlay()" id="play-pause-btn">
+                        <i class="fas fa-play" id="play-icon"></i>
+                    </button>
+                    <button class="control-btn" onclick="app.skipNext()">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button class="control-btn" onclick="app.setRepeatMode()" id="repeat-btn">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+                <div class="progress-container">
+                    <span class="time-current" id="time-current">0:00</span>
+                    <div class="progress-bar" id="progress-bar">
+                        <div class="progress-filled" id="progress-filled"></div>
+                        <div class="progress-handle" id="progress-handle"></div>
+                    </div>
+                    <span class="time-total" id="time-total">0:00</span>
+                </div>
+            </div>
+
+            <div class="player-extras">
+                <button class="icon-btn" onclick="app.toggleLyrics()">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button class="icon-btn" onclick="app.toggleQueue()">
+                    <i class="fas fa-list"></i>
+                </button>
+                <div class="volume-control" id="volume-control">
+                    <button class="icon-btn" onclick="app.toggleVolumeSlider(event)" id="mute-btn">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <div class="volume-slider-wrapper" id="volume-slider-wrapper">
+                        <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="70">
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="app.togglePlayerSettings()" id="player-settings-btn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+
+            <!-- Player Settings Menu -->
+            <div class="player-settings-menu" id="player-settings-menu">
+                <div class="settings-menu-header">
+                    <span>Playback Settings</span>
+                </div>
+                <div class="settings-menu-content">
+                    <div class="menu-item" onclick="app.setShuffle()" id="menu-shuffle">
+                        <i class="fas fa-random"></i>
+                        <span>Shuffle</span>
+                        <div class="status-dot" id="shuffle-dot"></div>
+                    </div>
+                    <div class="menu-item" onclick="app.setRepeatMode()" id="menu-repeat">
+                        <i class="fas fa-redo"></i>
+                        <span>Repeat</span>
+                        <div class="status-label" id="repeat-label">Off</div>
+                    </div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item" onclick="app.toggleQueue()">
+                        <i class="fas fa-stream"></i>
+                        <span>Full Queue</span>
+                    </div>
+                    <div class="menu-item" onclick="app.addToQueue()">
+                        <i class="fas fa-plus"></i>
+                        <span>Add to queue</span>
+                    </div>
+                    <div class="menu-item" onclick="app.toggleFullscreen()">
+                        <i class="fas fa-expand"></i>
+                        <span>Fullscreen</span>
+                    </div>
+                    <div class="menu-divider"></div>
+                    <div class="menu-item-static">
+                        <i class="fas fa-bolt"></i>
+                        <span>Quality:</span>
+                        <div class="quality-badge" id="quality-badge">96k</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Panel -->
+        <div class="queue-panel" id="queue-panel">
+            <div class="queue-header">
+                <h3>Queue</h3>
+                <div class="queue-actions">
+                    <button class="icon-btn active" id="autoplay-btn" onclick="app.toggleAutoplay()">
+                        <i class="fas fa-infinity"></i>
+                    </button>
+                    <button class="close-btn" onclick="app.toggleQueue()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="queue-list" id="queue-list">
+                <p class="empty-state">Queue is empty</p>
+            </div>
+        </div>
+
+        <!-- Lyrics Panel -->
+        <div class="lyrics-panel" id="lyrics-panel">
+            <div class="lyrics-header">
+                <h3>Lyrics</h3>
+                <button class="close-btn" onclick="app.toggleLyrics()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="lyrics-content" id="lyrics-content">
+                <div class="lyrics-empty">
+                    <i class="fas fa-music"></i>
+                    <p>Play a song to see lyrics</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Extended Player -->
+        <div id="extended-player" class="extended-player hidden">
+            <div class="extended-background" id="extended-bg"></div>
+            <div class="extended-content">
+                <div class="extended-header">
+                    <button class="icon-btn" onclick="app.toggleExtendedPlayer()">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <span>Now Playing</span>
+                    <button class="icon-btn" onclick="app.toggleExtendedQueue()">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+
+                <div class="extended-artwork-container">
+                    <div class="extended-artwork">
+                        <img src="" id="extended-img" alt="">
+                        <div class="artwork-reflection"></div>
+                    </div>
+                </div>
+
+                <div class="extended-info">
+                    <div class="extended-text">
+                        <h2 id="extended-title">Song Title</h2>
+                        <p id="extended-artist">Artist Name</p>
+                    </div>
+                    <button class="icon-btn" id="extended-like-btn" onclick="app.toggleLike()">
+                        <i class="far fa-heart"></i>
+                    </button>
+                </div>
+
+                <div class="extended-progress">
+                    <div class="progress-bar extended-progress-bar" id="extended-progress-bar">
+                        <div class="progress-filled" id="extended-progress-filled"></div>
+                        <div class="progress-handle" id="extended-progress-handle"></div>
+                    </div>
+                    <div class="time-labels">
+                        <span id="extended-time-current">0:00</span>
+                        <span id="extended-time-total">0:00</span>
+                    </div>
+                </div>
+
+                <div class="extended-controls">
+                    <button class="control-btn" onclick="app.setShuffle()" id="extended-shuffle-btn">
+                        <i class="fas fa-random"></i>
+                    </button>
+                    <button class="control-btn medium" onclick="app.skipPrevious()">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                    <button class="play-pause-btn large" onclick="app.togglePlay()" id="extended-play-btn">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="control-btn medium" onclick="app.skipNext()">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button class="control-btn" onclick="app.setRepeatMode()" id="extended-repeat-btn">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="extended-queue-panel hidden" id="extended-queue-panel">
+                <div class="glass-header">
+                    <h3>Up Next</h3>
+                    <button class="icon-btn" onclick="app.toggleExtendedQueue()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="extended-queue-list" id="extended-queue-list"></div>
+            </div>
+        </div>
+
+        <!-- Audio Element -->
+        <audio id="audio-element" crossorigin="anonymous" preload="auto"></audio>
+
+        <!-- Toast -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
